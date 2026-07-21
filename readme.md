@@ -123,7 +123,3 @@ Each formatter provides:
 - Contextual colors based on values
 - Sensible defaults for labels
 - Built-in data visualization where appropriate
-
-## License
-
-[MIT License](../LICENSE)
