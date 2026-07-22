@@ -15,6 +15,10 @@ fn default_cache() -> u32 {
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
+/// A configurable badge that can be rendered as SVG or JSON.
+///
+/// Builder methods consume and return the badge, so they can be chained.
+/// Without customization, labels use black and values use blue.
 pub struct Badge {
   #[serde(rename = "label")]
   label: Option<String>,
@@ -51,42 +55,50 @@ pub struct Badge {
 }
 
 impl Badge {
+  /// Creates a badge with default colors and no text or logo.
   pub fn new() -> Self {
     Self::default()
   }
 
   // MARK: Setters
 
+  /// Sets the text shown on the left side of the badge.
   pub fn label(mut self, label: &str) -> Self {
     self.label = Some(label.into());
     self
   }
 
+  /// Sets the background color of the label.
   pub fn label_color(mut self, color: Color) -> Self {
     self.label_color = Some(color);
     self
   }
 
+  /// Sets the text shown on the right side of the badge.
   pub fn value(mut self, value: &str) -> Self {
     self.value = Some(value.into());
     self
   }
 
+  /// Sets the background color of the value.
   pub fn value_color(mut self, color: Color) -> Self {
     self.value_color = Some(color);
     self
   }
 
+  /// Adds a logo by its [Simple Icons](https://simpleicons.org) slug.
   pub fn logo(mut self, logo: &str) -> Self {
     self.logo = Some(logo.into());
     self
   }
 
+  /// Sets the logo color.
   pub fn logo_color(mut self, color: Color) -> Self {
     self.logo_color = Some(color);
     self
   }
 
+  /// Sets the corner radius, clamped to `12` during rendering.
   pub fn radius(mut self, radius: u8) -> Self {
     self.radius = Some(radius);
     self
@@ -94,6 +106,10 @@ impl Badge {
 
   // MARK: Predefined
 
+  /// Configures a version badge and chooses a color based on the version.
+  ///
+  /// A missing version becomes `unknown`, and versions without a leading `v`
+  /// receive one. Pre-release versions are cyan and `v0` versions are orange.
   pub fn for_version(mut self, label: &str, value: &str) -> Self {
     let value = match value.to_lowercase().trim() {
       "" | "unknown" | "none" => "unknown".into(),
@@ -120,6 +136,7 @@ impl Badge {
     self
   }
 
+  /// Configures a blue license badge.
   pub fn for_license(mut self, license: &str) -> Self {
     self.label = self.label.or(Some("license".into()));
     self.value = Some(license.into());
@@ -127,6 +144,7 @@ impl Badge {
     self
   }
 
+  /// Configures a green downloads badge with a compact count.
   pub fn for_downloads(mut self, period: Period, value: u64) -> Self {
     let value = match period {
       Period::Week => format!("{}/week", millify(value)),
@@ -141,6 +159,7 @@ impl Badge {
     self
   }
 
+  /// Configures a CI badge as green `passing` or red `failing`.
   pub fn for_ci_status(mut self, label: &str, status: bool) -> Self {
     let value = if status { "passing" } else { "failing" };
     let color = if status { Color::Green } else { Color::Red };
@@ -151,6 +170,7 @@ impl Badge {
     self
   }
 
+  /// Configures a blue badge with a compact decimal count such as `1.2k`.
   pub fn for_count(mut self, label: &str, value: u64) -> Self {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(millify(value));
@@ -158,6 +178,7 @@ impl Badge {
     self
   }
 
+  /// Configures a blue badge with an IEC byte size such as `1.2 MiB`.
   pub fn for_size(mut self, label: &str, value: u64) -> Self {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(millify_iec(value));
@@ -165,6 +186,7 @@ impl Badge {
     self
   }
 
+  /// Configures a numeric rating badge with a color based on the score.
   pub fn for_rating(mut self, label: &str, value: f64, max_value: f64) -> Self {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(format!("{:.1}/{}", value, max_value));
@@ -172,6 +194,7 @@ impl Badge {
     self
   }
 
+  /// Configures a five-star rating badge with a color based on the score.
   pub fn for_stars(mut self, label: &str, value: f64, max_value: f64) -> Self {
     let stars = {
       let scale = max_value / 5.0;
@@ -196,6 +219,7 @@ impl Badge {
     self
   }
 
+  /// Configures a relative-time badge for a UTC timestamp.
   pub fn for_duration(mut self, label: &str, value: DateTime<Utc>) -> Self {
     let days = Utc::now().signed_duration_since(value).num_days();
     let (value, color) = match days {
@@ -216,10 +240,12 @@ impl Badge {
 
   // MARK: Render
 
+  /// Serializes the badge configuration as JSON.
   pub fn to_json(&self) -> String {
     serde_json::to_string(self).unwrap()
   }
 
+  /// Renders the badge as a complete SVG document.
   pub fn to_svg(&self) -> String {
     let icon = get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color);
 

@@ -1,125 +1,106 @@
 # badgelib
 
-A Rust library for generating customizable SVG badges, similar to shields.io.
+<div align="center">
 
-## Features
+[<img src="https://badges.ws/crates/v/badgelib?color=f74d02&logo=rust" alt="version" />](https://crates.io/crates/badgelib)
+[<img src="https://badges.ws/crates/docs/badgelib?logo=rust" alt="docs" />](https://docs.rs/badgelib)
+[<img src="https://badges.ws/crates/dt/badgelib?logo=rust" alt="downloads" />](https://crates.io/crates/badgelib)
+[<img src="https://badges.ws/github/license/vladkens/badgelib?logo=opensourceinitiative" alt="license" />](https://github.com/vladkens/badgelib/blob/main/LICENSE)
+[<img src="https://badges.ws/badge/-/buy%20me%20a%20coffee/ff813f?icon=buymeacoffee&label" alt="donate" />](https://buymeacoffee.com/vladkens)
 
-- Generate SVG badges with custom text, colors, and icons
-- Built-in width calculation for proper badge sizing
-- Support for Simple Icons
-- Optional Axum web framework integration
-- Flexible badge styling options
-- Built-in formatters for common badge types:
-  - Version badges
-  - Download count badges  
-  - Rating badges
-  - Star count badges
-  - Duration/age badges
-  - License badges
+</div>
 
-## Installation
+`badgelib` is a Rust library for rendering customizable SVG badges directly in your application. Use it when you want to generate badges without running a separate badge service. It powers [badges.ws](https://badges.ws); the web service and its data integrations live in the main [badges repository](https://github.com/vladkens/badges).
 
-Add **badgelib** to your project using the following `cargo` command:
+## Install
 
 ```sh
 cargo add badgelib
 ```
 
-To enable Axum integration, use:
+## Quick start
+
+```rust
+use badgelib::{Badge, Color};
+
+fn main() -> std::io::Result<()> {
+  let svg = Badge::new()
+    .label("build")
+    .value("passing")
+    .value_color(Color::Green)
+    .logo("rust")
+    .radius(4)
+    .to_svg();
+
+  std::fs::write("badge.svg", svg)
+}
+```
+
+`Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, an icon from [Simple Icons](https://simpleicons.org), a custom icon color, and a border radius.
+
+## Built-in badge types
+
+The library includes helpers for common badge values and their default formatting:
+
+```rust
+use badgelib::{Badge, Period};
+
+let version = Badge::new().for_version("version", "1.2.0");
+let license = Badge::new().for_license("MIT");
+let downloads = Badge::new().for_downloads(Period::Month, 1_234_567);
+let build = Badge::new().for_ci_status("build", true);
+let size = Badge::new().for_size("size", 1_234_567);
+let rating = Badge::new().for_rating("rating", 4.5, 5.0);
+```
+
+Available helpers cover versions, licenses, downloads, CI status, counts, sizes, ratings, star ratings, and relative durations. You can override their labels and colors with the regular builder methods.
+
+## JSON output
+
+Use `Badge::to_json()` when you need the badge parameters as JSON instead of rendered SVG:
+
+```rust
+let json = badgelib::Badge::new()
+  .label("version")
+  .value("v1.2.0")
+  .to_json();
+```
+
+## Axum integration
+
+Enable the optional `axum` feature to return a `Badge` directly from a handler:
 
 ```sh
 cargo add badgelib --features axum
 ```
 
-## Usage
-
 ```rust
 use badgelib::Badge;
 
-// Create a simple version badge
-let badge = Badge::default().for_version("version", "1.0.0");
-
-// Generate SVG
-let svg = badge.to_svg();
-
-// Or generate JSON
-let json = badge.to_json();
-```
-
-### Customization
-
-Badges can be customized with:
-
-- Custom label and value text
-- Label and value colors
-- Icons (using Simple Icons)
-- Icon colors  
-- Border radius
-- Different styles (flat, flat-square, etc)
-
-```rust
-use badgelib::{Badge, Color};
-
-let badge = Badge::default()
-  .label("downloads")
-  .value("1.2k")
-  .label_color(Color::Blue)
-  .value_color(Color::Green)
-  .logo("rust")
-  .logo_color(Color::Red)
-  .with_radius(8)
-  .to_svg();
-```
-
-### Using with Axum
-
-When enabled with the `axum` feature, badges can be used as responses in Axum handlers:
-
-```rust
-async fn badge_handler() -> impl IntoResponse {
-  Badge::default().for_version("version", "1.0.0")
+async fn version_badge() -> Badge {
+  Badge::new().for_version("version", env!("CARGO_PKG_VERSION"))
 }
 ```
 
-### Built-in Formatters
+With this feature enabled, `Badge` implements Axum's `IntoResponse` and returns SVG by default with the appropriate content type and cache headers.
 
-The library includes several built-in formatters for common badge types:
+## Development
 
-```rust
-use badgelib::{Badge, Period};
-use chrono::{DateTime, Utc};
+Clone the repository with its Simple Icons submodule, then run the existing checks:
 
-// Version badge (automatically adds v prefix and colors)
-let version = Badge::default().for_version("version", "1.0.0");  // Shows as "v1.0.0"
-
-// License badge
-let license = Badge::default().for_license("MIT");
-
-// Download count badge with period and automatic formatting
-let downloads = Badge::default().for_downloads(Period::Month, 1234567);  // Shows as "1.2M/month"
-
-// CI status badge (green/red)
-let ci = Badge::default().for_ci_status("build", true);  // Shows as "build passing"
-
-// Generic count badge with automatic formatting
-let count = Badge::default().for_count("stars", 1234);  // Shows as "1.2k"
-
-// Size badge with IEC formatting
-let size = Badge::default().for_size("size", 1234567);  // Shows as "1.2 MiB"
-
-// Rating badge (0-5 scale)
-let rating = Badge::default().for_rating("rating", 4.5, 5.0);  // Shows as "4.5/5"
-
-// Star rating badge with visual stars
-let stars = Badge::default().for_stars("rating", 4.5, 5.0);  // Shows as "★★★★½"
-
-// Duration/age badge with automatic formatting and colors
-let date = DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z").unwrap();
-let age = Badge::default().for_duration("updated", date.into());  // Shows as "1 year ago"
+```sh
+git clone --recurse-submodules https://github.com/vladkens/badgelib.git
+cd badgelib
+make check
+make test
 ```
 
-Each formatter provides:
-- Automatic value formatting (numbers, dates, etc)
-- Contextual colors based on values
-- Sensible defaults for labels
-- Built-in data visualization where appropriate
+## Credits
+
+- Inspired by [Shields.io](https://shields.io) and [Badgen](https://badgen.net).
+- Icons are provided by [Simple Icons](https://simpleicons.org).
+- Badge text is rendered with [DejaVu Sans](https://dejavu-fonts.github.io).
+
+## License
+
+Distributed under the [MIT License](LICENSE).

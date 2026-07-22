@@ -1,31 +1,52 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
+/// Time period used by [`Badge::for_downloads`](crate::Badge::for_downloads).
 pub enum Period {
+  /// Downloads per week.
   Week,
+  /// Downloads per month.
   Month,
+  /// Downloads per year.
   Year,
+  /// Total downloads without a period suffix.
   Total,
 }
 
 // MARK: Color
 
 #[derive(Debug, Default, Clone, PartialEq)]
+/// A badge background or logo color.
+///
+/// Named variants use the crate's built-in palette. Use [`Color::try_from`] to
+/// validate a color name or a three- or six-digit hexadecimal value.
 pub enum Color {
+  /// Blue (`#3b82f6`), the default value color.
   #[default]
   Blue,
+  /// Green (`#22c55e`).
   Green,
+  /// Lime (`#84cc16`).
   Lime,
+  /// Yellow (`#eab308`).
   Yellow,
+  /// Orange (`#f97316`).
   Orange,
+  /// Red (`#ef4444`).
   Red,
+  /// Gray (`#71717a`).
   Gray,
+  /// Black (`#18181b`), the default label color.
   Black,
+  /// White (`#f4f4f5`).
   White,
+  /// Cyan (`#06b6d4`).
   Cyan,
+  /// A custom three- or six-digit hexadecimal color.
   Hex(String),
 }
 
 impl Color {
+  /// Returns the hexadecimal value without a leading `#`.
   pub fn to_hex(&self) -> String {
     // https://tailwindcss.com/docs/colors
     match self {
@@ -49,6 +70,7 @@ impl Color {
     }
   }
 
+  /// Returns the color as a CSS hexadecimal value with a leading `#`.
   pub fn to_css(&self) -> String {
     format!("#{}", self.to_hex())
   }
