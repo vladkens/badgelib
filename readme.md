@@ -36,7 +36,32 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-`Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, an icon from [Simple Icons](https://simpleicons.org), a custom icon color, and a border radius.
+`Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, an icon from [Simple Icons](https://simpleicons.org), a custom icon color, and a border radius.
+
+## Gradients
+
+Pass two or more colors to distribute them evenly from left to right:
+
+```rust
+use badgelib::{Badge, Color};
+
+let svg = Badge::new()
+  .label("build")
+  .value("passing")
+  .value_gradient([Color::Red, Color::Orange, Color::Cyan])
+  .logo("rust")
+  .to_svg();
+```
+
+Use `label_gradient` for the left side of a two-part badge. Calling a solid-color setter replaces the corresponding gradient, and calling a gradient setter replaces the solid color.
+
+<p align="center">
+  <img src="examples/value.svg" alt="Value gradient">
+  <img src="examples/dual.svg" alt="Dual gradient">
+  <img src="examples/mono.svg" alt="Mono gradient">
+</p>
+
+See [how these examples are generated](examples/generate.rs).
 
 ## Built-in badge types
 

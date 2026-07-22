@@ -14,6 +14,30 @@ fn default_cache() -> u32 {
   86400 // 24 hours
 }
 
+fn gradient_offset(index: usize, color_count: usize) -> String {
+  let offset = index as f32 * 100.0 / (color_count - 1) as f32;
+  format!("{offset:.3}%")
+}
+
+fn gradient_text_color(colors: &[Color]) -> Color {
+  if colors.iter().all(|color| text_color(color) == Color::Black) {
+    Color::Black
+  } else {
+    Color::White
+  }
+}
+
+fn deserialize_gradient<'de, D>(deserializer: D) -> Result<Option<Vec<Color>>, D::Error>
+where
+  D: serde::Deserializer<'de>,
+{
+  let colors = Option::<Vec<Color>>::deserialize(deserializer)?;
+  if colors.as_ref().is_some_and(|colors| colors.len() < 2) {
+    return Err(serde::de::Error::custom("a gradient requires at least two colors"));
+  }
+  Ok(colors)
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 /// A configurable badge that can be rendered as SVG or JSON.
 ///
@@ -26,11 +50,27 @@ pub struct Badge {
   #[serde(rename = "labelColor", deserialize_with = "empty_string_as_none", default)]
   label_color: Option<Color>,
 
+  #[serde(
+    rename = "labelGradient",
+    deserialize_with = "deserialize_gradient",
+    default,
+    skip_serializing_if = "Option::is_none"
+  )]
+  label_gradient: Option<Vec<Color>>,
+
   #[serde(rename = "value")]
   value: Option<String>,
 
   #[serde(rename = "color", deserialize_with = "empty_string_as_none", default)]
   value_color: Option<Color>,
+
+  #[serde(
+    rename = "gradient",
+    deserialize_with = "deserialize_gradient",
+    default,
+    skip_serializing_if = "Option::is_none"
+  )]
+  value_gradient: Option<Vec<Color>>,
 
   #[serde(rename = "logo", alias = "icon")]
   logo: Option<String>,
@@ -71,6 +111,22 @@ impl Badge {
   /// Sets the background color of the label.
   pub fn label_color(mut self, color: Color) -> Self {
     self.label_color = Some(color);
+    self.label_gradient = None;
+    self
+  }
+
+  /// Sets a left-to-right gradient background for the label.
+  ///
+  /// Colors are distributed evenly and at least two are required.
+  ///
+  /// # Panics
+  ///
+  /// Panics when fewer than two colors are provided.
+  pub fn label_gradient(mut self, colors: impl IntoIterator<Item = Color>) -> Self {
+    let colors = colors.into_iter().collect::<Vec<_>>();
+    assert!(colors.len() >= 2, "a gradient requires at least two colors");
+    self.label_color = None;
+    self.label_gradient = Some(colors);
     self
   }
 
@@ -83,6 +139,22 @@ impl Badge {
   /// Sets the background color of the value.
   pub fn value_color(mut self, color: Color) -> Self {
     self.value_color = Some(color);
+    self.value_gradient = None;
+    self
+  }
+
+  /// Sets a left-to-right gradient background for the value.
+  ///
+  /// Colors are distributed evenly and at least two are required.
+  ///
+  /// # Panics
+  ///
+  /// Panics when fewer than two colors are provided.
+  pub fn value_gradient(mut self, colors: impl IntoIterator<Item = Color>) -> Self {
+    let colors = colors.into_iter().collect::<Vec<_>>();
+    assert!(colors.len() >= 2, "a gradient requires at least two colors");
+    self.value_color = None;
+    self.value_gradient = Some(colors);
     self
   }
 
@@ -132,7 +204,9 @@ impl Badge {
 
     self.label = self.label.or(Some(label.into()));
     self.value = Some(value);
-    self.value_color = self.value_color.or(Some(color));
+    if self.value_color.is_none() && self.value_gradient.is_none() {
+      self.value_color = Some(color);
+    }
     self
   }
 
@@ -140,7 +214,9 @@ impl Badge {
   pub fn for_license(mut self, license: &str) -> Self {
     self.label = self.label.or(Some("license".into()));
     self.value = Some(license.into());
-    self.value_color = self.value_color.or(Some(Color::Blue));
+    if self.value_color.is_none() && self.value_gradient.is_none() {
+      self.value_color = Some(Color::Blue);
+    }
     self
   }
 
@@ -155,7 +231,9 @@ impl Badge {
 
     self.label = self.label.or(Some("downloads".into()));
     self.value = Some(value);
-    self.value_color = self.value_color.or(Some(Color::Green));
+    if self.value_color.is_none() && self.value_gradient.is_none() {
+      self.value_color = Some(Color::Green);
+    }
     self
   }
 
@@ -167,6 +245,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(value.into());
     self.value_color = Some(color);
+    self.value_gradient = None;
     self
   }
 
@@ -175,6 +254,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(millify(value));
     self.value_color = Some(Color::Blue);
+    self.value_gradient = None;
     self
   }
 
@@ -183,6 +263,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(millify_iec(value));
     self.value_color = Some(Color::Blue);
+    self.value_gradient = None;
     self
   }
 
@@ -191,6 +272,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(format!("{:.1}/{}", value, max_value));
     self.value_color = Some(rating_color(value, max_value));
+    self.value_gradient = None;
     self
   }
 
@@ -216,6 +298,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(stars);
     self.value_color = Some(rating_color(value, max_value));
+    self.value_gradient = None;
     self
   }
 
@@ -235,6 +318,7 @@ impl Badge {
     self.label = self.label.or(Some(label.into()));
     self.value = Some(value);
     self.value_color = Some(color); // Changed from Color::Blue to use the calculated color
+    self.value_gradient = None;
     self
   }
 
@@ -255,7 +339,7 @@ impl Badge {
 
     #[allow(clippy::nonminimal_bool)]
     let mono = (!has_text && !has_icon)
-      || (has_icon && !has_text && self.label_color.is_none())
+      || (has_icon && !has_text && self.label_color.is_none() && self.label_gradient.is_none())
       || (ltext.is_empty() && rtext.is_empty());
 
     let fz = 110.0;
@@ -289,8 +373,18 @@ impl Badge {
 
     let lb_color = self.label_color.clone().unwrap_or(Color::Black);
     let rb_color = self.value_color.clone().unwrap_or(Color::Blue);
-    let lt_color = text_color(&lb_color).to_css();
-    let rt_color = text_color(&rb_color).to_css();
+    let lt_color = self
+      .label_gradient
+      .as_deref()
+      .map(gradient_text_color)
+      .unwrap_or_else(|| text_color(&lb_color))
+      .to_css();
+    let rt_color = self
+      .value_gradient
+      .as_deref()
+      .map(gradient_text_color)
+      .unwrap_or_else(|| text_color(&rb_color))
+      .to_css();
     let lb_color = lb_color.to_css();
     let rb_color = rb_color.to_css();
 
@@ -310,12 +404,32 @@ impl Badge {
         }
       }
 
+      @if let Some(colors) = &self.label_gradient {
+        linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(w-rw) y2="0" {
+          @for (index, color) in colors.iter().enumerate() {
+            stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+          }
+        }
+      }
+
+      @if let Some(colors) = &self.value_gradient {
+        linearGradient id="vg" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w) y2="0" {
+          @for (index, color) in colors.iter().enumerate() {
+            stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+          }
+        }
+      }
+
       // border-radius
       mask id="r" { rect width=(w) height=(h) rx=(radius) fill="#fff" {} }
 
       g mask="url(#r)" {
-        @if has_text || has_icon { rect x="0" y="0" width=(w) height=(h) fill=(lb_color) {} }
-        rect x=(w-rw) y="0" width=(rw) height=(h) fill=(rb_color) rx=(0) {}
+        @if has_text || has_icon {
+          rect x="0" y="0" width=(w) height=(h)
+            fill=(if self.label_gradient.is_some() { "url(#lg)" } else { &lb_color }) {}
+        }
+        rect x=(w-rw) y="0" width=(rw) height=(h)
+          fill=(if self.value_gradient.is_some() { "url(#vg)" } else { &rb_color }) rx=(0) {}
         rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
       }
 
@@ -359,6 +473,47 @@ impl axum::response::IntoResponse for Badge {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_value_gradient() {
+    let badge = Badge::new().label("build").value("passing").value_gradient([
+      Color::Red,
+      Color::Orange,
+      Color::Cyan,
+    ]);
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(r#"id="vg""#));
+    assert!(svg.contains(r##"offset="0.000%" stop-color="#ef4444""##));
+    assert!(svg.contains(r##"offset="50.000%" stop-color="#f97316""##));
+    assert!(svg.contains(r##"offset="100.000%" stop-color="#06b6d4""##));
+    assert!(svg.contains(r#"fill="url(#vg)""#));
+    assert_eq!(badge.value_color, None);
+    assert!(badge.to_json().contains(r#""gradient":["ef4444","f97316","06b6d4"]"#));
+  }
+
+  #[test]
+  fn test_color_and_gradient_replace_each_other() {
+    let solid = Badge::new().value_gradient([Color::Red, Color::Blue]).value_color(Color::Green);
+    assert_eq!(solid.value_color, Some(Color::Green));
+    assert_eq!(solid.value_gradient, None);
+
+    let gradient = Badge::new().value_color(Color::Green).value_gradient([Color::Red, Color::Blue]);
+    assert_eq!(gradient.value_color, None);
+    assert_eq!(gradient.value_gradient, Some(vec![Color::Red, Color::Blue]));
+  }
+
+  #[test]
+  #[should_panic(expected = "a gradient requires at least two colors")]
+  fn test_gradient_requires_two_colors() {
+    Badge::new().value_gradient([Color::Red]);
+  }
+
+  #[test]
+  fn test_gradient_deserialization_requires_two_colors() {
+    let result = serde_json::from_str::<Badge>(r#"{"gradient":["red"]}"#);
+    assert!(result.unwrap_err().to_string().starts_with("a gradient requires at least two colors"));
+  }
 
   #[test]
   fn test_for_version() {

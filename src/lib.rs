@@ -1,7 +1,7 @@
 //! Generate customizable SVG badges.
 //!
-//! Build a [`Badge`] by setting its label, value, colors, and optional logo,
-//! then render it with [`Badge::to_svg`]. Helpers such as
+//! Build a [`Badge`] by setting its label, value, solid or gradient backgrounds,
+//! and optional logo, then render it with [`Badge::to_svg`]. Helpers such as
 //! [`Badge::for_version`] and [`Badge::for_downloads`] provide common badge
 //! formats and colors.
 //!

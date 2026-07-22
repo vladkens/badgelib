@@ -1,4 +1,4 @@
-.PHONY: prepare check test update publish
+.PHONY: prepare check test examples update publish
 
 prepare:
 	cargo fmt
@@ -12,6 +12,9 @@ check:
 
 test:
 	cargo test --all-features --locked
+
+examples:
+	cargo run --example generate --all-features --locked
 
 update:
 	git submodule update --init --recursive
