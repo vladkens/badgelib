@@ -147,6 +147,7 @@ impl<'de> Deserialize<'de> for Style {
 
 // MARK: Format
 
+#[cfg(feature = "axum")]
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Format {
@@ -155,6 +156,7 @@ pub(crate) enum Format {
   Json,
 }
 
+#[cfg(feature = "axum")]
 impl<'a> TryFrom<&'a str> for Format {
   type Error = String;
 
@@ -167,6 +169,7 @@ impl<'a> TryFrom<&'a str> for Format {
   }
 }
 
+#[cfg(feature = "axum")]
 impl<'de> Deserialize<'de> for Format {
   fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
     let s = String::deserialize(deserializer)?;

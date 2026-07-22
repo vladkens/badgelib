@@ -1,6 +1,6 @@
 [package]
 name = "badgelib"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "A library for generating badges in Rust"
@@ -8,8 +8,8 @@ homepage = "https://badges.ws"
 repository = "https://github.com/vladkens/badgelib"
 documentation = "https://docs.rs/badgelib"
 readme = "readme.md"
-keywords = ["badge", "badges", "shields"]
-categories = ["development-tools"]
+keywords = ["badge", "svg", "shields", "status", "readme"]
+categories = ["development-tools", "graphics", "value-formatting"]
 
 [package.metadata.docs.rs]
 all-features = true
