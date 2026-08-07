@@ -112,7 +112,7 @@ let svg = Badge::new()
   .to_svg();
 ```
 
-The `Vibe Coded` examples combine Aurora with ten animated multicolor icon directions. The generated SVGs are ready to embed directly in a README.
+The `Vibe Coded` examples compare a static multicolor sparkle icon with icon-free Aurora palettes. The generated SVGs are ready to embed directly in a README.
 
 <!-- examples:animations:start -->
 <p align="center">
@@ -122,21 +122,18 @@ The `Vibe Coded` examples combine Aurora with ten animated multicolor icon direc
   <img src="examples/shine-animated.svg" alt="Shine">
   <img src="examples/aurora-color.svg" alt="Aurora (solid background)">
   <img src="examples/aurora-gradient.svg" alt="Aurora (gradient background)">
+  <img src="examples/vibe-coded-01-sparkles.svg" alt="Vibe Coded: static sparkles">
+  <img src="examples/vibe-coded-02-midnight.svg" alt="Vibe Coded: midnight">
+  <img src="examples/vibe-coded-03-sunset.svg" alt="Vibe Coded: sunset">
+  <img src="examples/vibe-coded-04-synthwave.svg" alt="Vibe Coded: synthwave">
+  <img src="examples/vibe-coded-05-ocean.svg" alt="Vibe Coded: ocean">
+  <img src="examples/vibe-coded-06-emerald.svg" alt="Vibe Coded: emerald">
+  <img src="examples/vibe-coded-07-candy.svg" alt="Vibe Coded: candy">
+  <img src="examples/vibe-coded-08-ember.svg" alt="Vibe Coded: ember">
+  <img src="examples/vibe-coded-09-ultraviolet.svg" alt="Vibe Coded: ultraviolet">
+  <img src="examples/vibe-coded-10-cosmic.svg" alt="Vibe Coded: cosmic">
 </p>
 <!-- examples:animations:end -->
-
-<p align="center">
-  <img src="examples/vibe-coded-01-sparkles.svg" alt="Vibe Coded: sparkles">
-  <img src="examples/vibe-coded-02-wand.svg" alt="Vibe Coded: magic wand">
-  <img src="examples/vibe-coded-03-rainbow.svg" alt="Vibe Coded: rainbow">
-  <img src="examples/vibe-coded-04-comet.svg" alt="Vibe Coded: comet">
-  <img src="examples/vibe-coded-05-heart.svg" alt="Vibe Coded: pixel heart">
-  <img src="examples/vibe-coded-06-flower.svg" alt="Vibe Coded: flower">
-  <img src="examples/vibe-coded-07-orbit.svg" alt="Vibe Coded: orbit">
-  <img src="examples/vibe-coded-08-bolt.svg" alt="Vibe Coded: lightning">
-  <img src="examples/vibe-coded-09-prism.svg" alt="Vibe Coded: prism">
-  <img src="examples/vibe-coded-10-code.svg" alt="Vibe Coded: playful code">
-</p>
 
 ## Built-in badge types
 
