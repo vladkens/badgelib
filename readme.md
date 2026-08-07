@@ -5,7 +5,7 @@
 [<img src="https://badges.ws/crates/v/badgelib?color=f74d02&logo=rust" alt="version" />](https://crates.io/crates/badgelib)
 [<img src="https://badges.ws/crates/docs/badgelib?logo=rust" alt="docs" />](https://docs.rs/badgelib)
 [<img src="https://badges.ws/crates/dt/badgelib?logo=rust" alt="downloads" />](https://crates.io/crates/badgelib)
-[<img src="https://badges.ws/github/license/vladkens/badgelib?logo=opensourceinitiative" alt="license" />](https://github.com/vladkens/badgelib/blob/main/LICENSE)
+[<img src="https://badges.ws/github/license/vladkens/badgelib" alt="license" />](https://github.com/vladkens/badgelib/blob/main/LICENSE)
 [<img src="https://badges.ws/badge/-/buy%20me%20a%20coffee/ff813f?icon=buymeacoffee&label" alt="donate" />](https://buymeacoffee.com/vladkens)
 
 </div>
@@ -55,13 +55,61 @@ let svg = Badge::new()
 
 Use `label_gradient` for the left side of a two-part badge. Calling a solid-color setter replaces the corresponding gradient, and calling a gradient setter replaces the solid color.
 
+<!-- examples:gradients:start -->
 <p align="center">
   <img src="examples/value.svg" alt="Value gradient">
   <img src="examples/dual.svg" alt="Dual gradient">
   <img src="examples/mono.svg" alt="Mono gradient">
 </p>
+<!-- examples:gradients:end -->
 
-See [how these examples are generated](examples/generate.rs).
+## Custom icons
+
+`logo` looks up a slug in [Simple Icons](https://simpleicons.org), which only supports single-color icons. For anything else, pass raw SVG markup directly with `icon_svg`:
+
+```rust
+use badgelib::Badge;
+
+let svg = Badge::new()
+  .value("custom icon")
+  .icon_svg(r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M12 3 L14 10 L21 12 L14 14 L12 21 L10 14 L3 12 L10 10 Z" fill="#facc15" />
+  </svg>"##)
+  .to_svg();
+```
+
+<!-- examples:custom-icons:start -->
+<p align="center">
+  <img src="examples/custom-icon.svg" alt="Custom icon">
+</p>
+<!-- examples:custom-icons:end -->
+
+## Animations
+
+Each animation is its own method: no speed, direction, or easing to configure, just turn it on. Both animations respect the viewer's reduced-motion preference.
+
+`.flow()` scrolls `label_gradient` and/or `value_gradient` continuously — animates whichever side(s) have a gradient set:
+
+```rust
+use badgelib::{Badge, Color};
+
+let svg = Badge::new()
+  .value("flowing")
+  .value_gradient([Color::Red, Color::Orange, Color::Cyan])
+  .flow()
+  .to_svg();
+```
+
+`.shine()` periodically sweeps a soft diagonal light streak across the badge:
+
+<!-- examples:animations:start -->
+<p align="center">
+  <img src="examples/value-gradient-animated.svg" alt="Flow (value side)">
+  <img src="examples/label-gradient-animated.svg" alt="Flow (label side)">
+  <img src="examples/dual-gradient-animated.svg" alt="Flow (both sides)">
+  <img src="examples/shine-animated.svg" alt="Shine">
+</p>
+<!-- examples:animations:end -->
 
 ## Built-in badge types
 
@@ -78,6 +126,17 @@ let size = Badge::new().for_size("size", 1_234_567);
 let rating = Badge::new().for_rating("rating", 4.5, 5.0);
 ```
 
+<!-- examples:built-ins:start -->
+<p align="center">
+  <img src="examples/version.svg" alt="Version">
+  <img src="examples/license.svg" alt="License">
+  <img src="examples/downloads.svg" alt="Downloads">
+  <img src="examples/ci-status.svg" alt="CI status">
+  <img src="examples/size.svg" alt="Size">
+  <img src="examples/rating.svg" alt="Rating">
+</p>
+<!-- examples:built-ins:end -->
+
 Available helpers cover versions, licenses, downloads, CI status, counts, sizes, ratings, star ratings, and relative durations. You can override their labels and colors with the regular builder methods.
 
 ## JSON output
@@ -90,6 +149,12 @@ let json = badgelib::Badge::new()
   .value("v1.2.0")
   .to_json();
 ```
+
+```json
+{"label":"version","labelColor":null,"value":"v1.2.0","color":null,"logo":null,"logoColor":null,"radius":null,"style":"flat"}
+```
+
+`format` and `cache` also appear when the `axum` feature is enabled.
 
 ## Axum integration
 

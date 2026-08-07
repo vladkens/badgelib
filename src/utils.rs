@@ -69,6 +69,10 @@ pub fn millify_iec(n: u64) -> String {
   label
 }
 
+pub(crate) fn to_icon_uri(svg: &str) -> String {
+  format!("data:image/svg+xml;base64,{}", BASE64_STANDARD.encode(svg))
+}
+
 pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
   let pretenders = [
     name.to_lowercase(),
@@ -82,7 +86,7 @@ pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
     pretenders.iter().find_map(|n| ICONS.get(n))?
   );
 
-  Some(format!("data:image/svg+xml;base64,{}", BASE64_STANDARD.encode(icon)))
+  Some(to_icon_uri(&icon))
 }
 
 pub(crate) fn text_color(bg_color: &Color) -> Color {

@@ -7,6 +7,7 @@ use crate::param::Format;
 use crate::param::{Period, Style};
 use crate::utils::{
   cacl_width, empty_string_as_none, get_icon, millify, millify_iec, rating_color, text_color,
+  to_icon_uri,
 };
 
 #[cfg(feature = "axum")]
@@ -17,6 +18,36 @@ fn default_cache() -> u32 {
 fn gradient_offset(index: usize, color_count: usize) -> String {
   let offset = index as f32 * 100.0 / (color_count - 1) as f32;
   format!("{offset:.3}%")
+}
+
+fn is_false(value: &bool) -> bool {
+  !value
+}
+
+/// Repeats `colors` into two back-to-back periods that both start and end on
+/// `colors[0]`, so animating a translation by exactly one period loops
+/// seamlessly (see [`Badge::flow`] and its use in `to_svg`).
+fn looping_gradient_stops(colors: &[Color]) -> Vec<Color> {
+  let mut period = colors.to_vec();
+  period.push(colors[0].clone());
+
+  let mut seq = period.clone();
+  seq.extend(period.into_iter().skip(1));
+  seq
+}
+
+/// Width of one full loop of a flowing gradient, so that each color-to-color
+/// transition gets roughly `box_width` of its own space to play out in,
+/// instead of cramming every transition into a single `box_width` (which
+/// looks increasingly squished as more colors are added).
+fn flow_period(box_width: f32, color_count: usize) -> f32 {
+  box_width * (color_count as f32 - 1.0).max(1.0)
+}
+
+/// Loop duration proportional to `flow_period`, so the gradient always
+/// scrolls at the same speed regardless of how many colors it has to cover.
+fn flow_duration(period: f32, box_width: f32) -> f32 {
+  6.0 * period / box_width
 }
 
 fn gradient_text_color(colors: &[Color]) -> Color {
@@ -78,6 +109,21 @@ pub struct Badge {
   #[serde(rename = "logoColor", alias = "iconColor")]
   #[serde(deserialize_with = "empty_string_as_none", default)]
   logo_color: Option<Color>,
+
+  /// Custom icon markup set via [`Badge::icon_svg`], bypassing the Simple
+  /// Icons lookup used by `logo`.
+  #[serde(skip)]
+  icon_svg: Option<String>,
+
+  /// Set via [`Badge::flow`] to animate `label_gradient` and/or
+  /// `value_gradient` as a continuously scrolling loop.
+  #[serde(rename = "flow", default, skip_serializing_if = "is_false")]
+  flow_animated: bool,
+
+  /// Set via [`Badge::shine`] to sweep a light streak across the badge on a
+  /// loop.
+  #[serde(rename = "shine", default, skip_serializing_if = "is_false")]
+  shine_animated: bool,
 
   #[serde(rename = "radius")]
   radius: Option<u8>,
@@ -158,15 +204,42 @@ impl Badge {
     self
   }
 
+  /// Animates `label_gradient` and/or `value_gradient` as a continuously
+  /// scrolling loop instead of a static fill. Has no effect on a side
+  /// without a gradient set via [`Badge::label_gradient`] /
+  /// [`Badge::value_gradient`].
+  pub fn flow(mut self) -> Self {
+    self.flow_animated = true;
+    self
+  }
+
+  /// Periodically sweeps a soft diagonal light streak across the badge.
+  pub fn shine(mut self) -> Self {
+    self.shine_animated = true;
+    self
+  }
+
   /// Adds a logo by its [Simple Icons](https://simpleicons.org) slug.
   pub fn logo(mut self, logo: &str) -> Self {
     self.logo = Some(logo.into());
+    self.icon_svg = None;
     self
   }
 
   /// Sets the logo color.
   pub fn logo_color(mut self, color: Color) -> Self {
     self.logo_color = Some(color);
+    self
+  }
+
+  /// Sets a custom icon from raw, already-colored SVG markup, bypassing the
+  /// [Simple Icons](https://simpleicons.org) lookup used by [`Badge::logo`].
+  /// Use this for icons that need multiple colors or shapes Simple Icons
+  /// doesn't have. The caller is responsible for the markup; it is emitted
+  /// as-is, so don't pass it untrusted input.
+  pub fn icon_svg(mut self, svg: impl Into<String>) -> Self {
+    self.icon_svg = Some(svg.into());
+    self.logo = None;
     self
   }
 
@@ -331,7 +404,11 @@ impl Badge {
 
   /// Renders the badge as a complete SVG document.
   pub fn to_svg(&self) -> String {
-    let icon = get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color);
+    let icon = self
+      .icon_svg
+      .as_deref()
+      .map(to_icon_uri)
+      .or_else(|| get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color));
 
     let ltext = self.label.clone().map(|x| x.trim().to_string()).unwrap_or_default();
     let rtext = self.value.clone().map(|x| x.trim().to_string()).unwrap_or_default();
@@ -368,7 +445,7 @@ impl Badge {
     let title = if has_text { format!("{ltext}: {rtext}") } else { rtext.to_string() };
     let (outx, outy) = (fz * 0.075 / 2.0, fz * 0.075);
 
-    let hh = 20.0 * 1.0;
+    let hh = 20.0;
     let ww = w * hh / h;
 
     let lb_color = self.label_color.clone().unwrap_or(Color::Black);
@@ -391,10 +468,50 @@ impl Badge {
     let radius = self.radius.unwrap_or(if self.style == Style::Flat { 3 } else { 0 }).min(12);
     let radius = (fz / 12.0) * radius as f32;
 
+    let bg_rects = maud::html!(
+      @if has_text || has_icon {
+        @if self.flow_animated && self.label_gradient.is_some() {
+          rect class="flow-label" x="0" y="0" width=(w) height=(h) fill="url(#lg)" {}
+        } @else {
+          rect x="0" y="0" width=(w) height=(h)
+            fill=(if self.label_gradient.is_some() { "url(#lg)" } else { &lb_color }) {}
+        }
+      }
+      @if self.flow_animated && self.value_gradient.is_some() {
+        rect class="flow-value" x=(w-rw) y="0" width=(rw) height=(h) fill="url(#vg)" rx=(0) {}
+      } @else {
+        rect x=(w-rw) y="0" width=(rw) height=(h)
+          fill=(if self.value_gradient.is_some() { "url(#vg)" } else { &rb_color }) rx=(0) {}
+      }
+      rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
+      @if self.shine_animated {
+        @let band = h * 1.15;
+        rect class="shine" y="0" width=(band) height=(h) fill="url(#sh)" {
+          (maud::PreEscaped(format!(
+            r#"<animate attributeName="x" values="{};{};{};{}" keyTimes="0;0.25;0.70;1" calcMode="spline" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1" dur="4s" repeatCount="indefinite" />"#,
+            -band,
+            -band,
+            w + band,
+            w + band
+          )))
+        }
+      }
+    );
+
+    let bg_group = maud::html!( g mask="url(#r)" { (bg_rects) } );
+
     let svg = maud::html!(svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label=(title)
       viewBox=(format!("0 0 {} {}", w, h)) width=(ww) height=(hh) text-rendering="geometricPrecision"
     {
       title { (title) }
+
+      @if self.flow_animated || self.shine_animated {
+        style {
+          (maud::PreEscaped(
+            "@media (prefers-reduced-motion: reduce) {.flow-label{fill:url(#lgs)}.flow-value{fill:url(#vgs)}.shine{display:none}}"
+          ))
+        }
+      }
 
       // background gradient
       @if self.style == Style::Flat {
@@ -405,33 +522,75 @@ impl Badge {
       }
 
       @if let Some(colors) = &self.label_gradient {
-        linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(w-rw) y2="0" {
-          @for (index, color) in colors.iter().enumerate() {
-            stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+        @if self.flow_animated {
+          linearGradient id="lgs" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(w-rw) y2="0" {
+            @for (index, color) in colors.iter().enumerate() {
+              stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+            }
+          }
+          @let seq = looping_gradient_stops(colors);
+          @let period = flow_period(w - rw, colors.len());
+          @let dur = flow_duration(period, w - rw);
+          linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(period*2.0) y2="0" {
+            @for (index, color) in seq.iter().enumerate() {
+              stop offset=(gradient_offset(index, seq.len())) stop-color=(color.to_css()) {}
+            }
+            (maud::PreEscaped(format!(
+              r#"<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="{} 0" dur="{:.2}s" repeatCount="indefinite" />"#,
+              -period, dur
+            )))
+          }
+        } @else {
+          linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(w-rw) y2="0" {
+            @for (index, color) in colors.iter().enumerate() {
+              stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+            }
           }
         }
       }
 
       @if let Some(colors) = &self.value_gradient {
-        linearGradient id="vg" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w) y2="0" {
-          @for (index, color) in colors.iter().enumerate() {
-            stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+        @if self.flow_animated {
+          linearGradient id="vgs" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w) y2="0" {
+            @for (index, color) in colors.iter().enumerate() {
+              stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+            }
           }
+          @let seq = looping_gradient_stops(colors);
+          @let period = flow_period(rw, colors.len());
+          @let dur = flow_duration(period, rw);
+          linearGradient id="vg" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w-rw+period*2.0) y2="0" {
+            @for (index, color) in seq.iter().enumerate() {
+              stop offset=(gradient_offset(index, seq.len())) stop-color=(color.to_css()) {}
+            }
+            (maud::PreEscaped(format!(
+              r#"<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="{} 0" dur="{:.2}s" repeatCount="indefinite" />"#,
+              -period, dur
+            )))
+          }
+        } @else {
+          linearGradient id="vg" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w) y2="0" {
+            @for (index, color) in colors.iter().enumerate() {
+              stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
+            }
+          }
+        }
+      }
+
+      @if self.shine_animated {
+        linearGradient id="sh" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(-12 .5 .5)" {
+          stop offset="0%" stop-color="#fff" stop-opacity="0" {}
+          stop offset="38%" stop-color="#fff" stop-opacity="0.05" {}
+          stop offset="50%" stop-color="#fff" stop-opacity="0.3" {}
+          stop offset="62%" stop-color="#fff" stop-opacity="0.05" {}
+          stop offset="100%" stop-color="#fff" stop-opacity="0" {}
         }
       }
 
       // border-radius
       mask id="r" { rect width=(w) height=(h) rx=(radius) fill="#fff" {} }
 
-      g mask="url(#r)" {
-        @if has_text || has_icon {
-          rect x="0" y="0" width=(w) height=(h)
-            fill=(if self.label_gradient.is_some() { "url(#lg)" } else { &lb_color }) {}
-        }
-        rect x=(w-rw) y="0" width=(rw) height=(h)
-          fill=(if self.value_gradient.is_some() { "url(#vg)" } else { &rb_color }) rx=(0) {}
-        rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
-      }
+      (bg_group)
 
       @if icon.is_some() {
         image x=(pad) y=((h-iw)/2.0) width=(iw) height=(iw) href=(icon.unwrap()) {}
@@ -513,6 +672,121 @@ mod tests {
   fn test_gradient_deserialization_requires_two_colors() {
     let result = serde_json::from_str::<Badge>(r#"{"gradient":["red"]}"#);
     assert!(result.unwrap_err().to_string().starts_with("a gradient requires at least two colors"));
+  }
+
+  #[test]
+  fn test_flow_animates_value_gradient() {
+    let badge =
+      Badge::new().label("build").value("flowing").value_gradient([Color::Red, Color::Blue]).flow();
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(r#"id="vg""#));
+    assert!(svg.contains("<animateTransform"));
+    assert!(svg.contains(r#"type="translate""#));
+    assert!(svg.contains(r##"offset="0.000%" stop-color="#ef4444""##));
+    assert!(svg.contains(r##"offset="25.000%" stop-color="#3b82f6""##));
+    assert!(svg.contains(r##"offset="50.000%" stop-color="#ef4444""##));
+    assert!(svg.contains(r##"offset="75.000%" stop-color="#3b82f6""##));
+    assert!(svg.contains(r##"offset="100.000%" stop-color="#ef4444""##));
+    assert!(svg.contains(r#"id="vgs""#));
+    assert!(svg.contains("prefers-reduced-motion: reduce"));
+  }
+
+  #[test]
+  fn test_gradient_not_animated_by_default() {
+    let badge = Badge::new().value("build").value_gradient([Color::Red, Color::Blue]);
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(r#"id="vg""#));
+    assert!(!svg.contains("animateTransform"));
+  }
+
+  #[test]
+  fn test_flow_without_gradient_has_no_effect() {
+    let badge = Badge::new().value("build").value_color(Color::Green).flow();
+    let svg = badge.to_svg();
+
+    assert!(!svg.contains(r#"id="vg""#));
+    assert!(!svg.contains("animateTransform"));
+  }
+
+  #[test]
+  fn test_flow_animates_label_gradient() {
+    let badge =
+      Badge::new().label("flowing").value("build").label_gradient([Color::Red, Color::Blue]).flow();
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(r#"id="lg""#));
+    assert!(svg.contains("<animateTransform"));
+  }
+
+  #[test]
+  fn test_flow_animates_both_gradients_at_once() {
+    let badge = Badge::new()
+      .label("a")
+      .label_gradient([Color::Red, Color::Blue])
+      .value("b")
+      .value_gradient([Color::Cyan, Color::Orange])
+      .flow();
+    let svg = badge.to_svg();
+
+    assert_eq!(svg.matches("<animateTransform").count(), 2);
+  }
+
+  #[test]
+  fn test_shine() {
+    let badge = Badge::new().value("passing").shine();
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(r#"id="sh""#));
+    assert!(svg.contains(r#"fill="url(#sh)""#));
+    assert!(svg.contains(r#"attributeName="x""#));
+    assert!(svg.contains(r#"keyTimes="0;0.25;0.70;1""#));
+    assert!(svg.contains(r#"dur="4s""#));
+    assert!(svg.contains(r#"class="shine""#));
+    assert!(svg.contains(".shine{display:none}"));
+  }
+
+  #[test]
+  fn test_shine_off_by_default() {
+    let badge = Badge::new().value("passing");
+    let svg = badge.to_svg();
+
+    assert!(!svg.contains(r#"id="sh""#));
+  }
+
+  #[test]
+  fn test_animation_settings_round_trip_through_json() {
+    let badge =
+      Badge::new().value("passing").value_gradient([Color::Red, Color::Blue]).flow().shine();
+    let json = badge.to_json();
+    let restored: Badge = serde_json::from_str(&json).unwrap();
+
+    assert!(json.contains(r#""flow":true"#));
+    assert!(json.contains(r#""shine":true"#));
+    assert!(restored.flow_animated);
+    assert!(restored.shine_animated);
+  }
+
+  #[test]
+  fn test_icon_svg_bypasses_logo_lookup() {
+    let raw = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 2" fill="#facc15" /></svg>"##;
+    let badge = Badge::new().value("custom").icon_svg(raw);
+    let svg = badge.to_svg();
+
+    assert!(svg.contains(&to_icon_uri(raw)));
+    assert_eq!(badge.logo, None);
+  }
+
+  #[test]
+  fn test_icon_svg_and_logo_replace_each_other() {
+    let solid = Badge::new().icon_svg("<svg></svg>").logo("rust");
+    assert_eq!(solid.icon_svg, None);
+    assert_eq!(solid.logo, Some("rust".to_string()));
+
+    let custom = Badge::new().logo("rust").icon_svg("<svg></svg>");
+    assert_eq!(custom.logo, None);
+    assert_eq!(custom.icon_svg, Some("<svg></svg>".to_string()));
   }
 
   #[test]

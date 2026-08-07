@@ -14,6 +14,7 @@ test:
 	cargo test --all-features --locked
 
 examples:
+	rm -rf examples/*.svg
 	cargo run --example generate --all-features --locked
 
 update:
