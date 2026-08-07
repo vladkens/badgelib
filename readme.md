@@ -112,8 +112,6 @@ let svg = Badge::new()
   .to_svg();
 ```
 
-The `Vibe Coded` examples compare a static multicolor sparkle icon with icon-free Aurora palettes. The generated SVGs are ready to embed directly in a README.
-
 <!-- examples:animations:start -->
 <p align="center">
   <img src="examples/value-gradient-animated.svg" alt="Flow (value side)">
@@ -122,6 +120,15 @@ The `Vibe Coded` examples compare a static multicolor sparkle icon with icon-fre
   <img src="examples/shine-animated.svg" alt="Shine">
   <img src="examples/aurora-color.svg" alt="Aurora (solid background)">
   <img src="examples/aurora-gradient.svg" alt="Aurora (gradient background)">
+</p>
+<!-- examples:animations:end -->
+
+### Vibe Coded designs
+
+These examples compare a static multicolor sparkle icon with icon-free Aurora palettes. The generated SVGs are ready to embed directly in a README.
+
+<!-- examples:vibe-coded:start -->
+<p align="center">
   <img src="examples/vibe-coded-01-sparkles.svg" alt="Vibe Coded: static sparkles">
   <img src="examples/vibe-coded-02-midnight.svg" alt="Vibe Coded: midnight">
   <img src="examples/vibe-coded-03-sunset.svg" alt="Vibe Coded: sunset">
@@ -133,7 +140,7 @@ The `Vibe Coded` examples compare a static multicolor sparkle icon with icon-fre
   <img src="examples/vibe-coded-09-ultraviolet.svg" alt="Vibe Coded: ultraviolet">
   <img src="examples/vibe-coded-10-cosmic.svg" alt="Vibe Coded: cosmic">
 </p>
-<!-- examples:animations:end -->
+<!-- examples:vibe-coded:end -->
 
 ## Built-in badge types
 

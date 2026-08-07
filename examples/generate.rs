@@ -9,17 +9,20 @@ enum Section {
   Gradients,
   CustomIcons,
   Animations,
+  VibeCoded,
   BuiltIns,
 }
 
 impl Section {
-  const ALL: [Self; 4] = [Self::Gradients, Self::CustomIcons, Self::Animations, Self::BuiltIns];
+  const ALL: [Self; 5] =
+    [Self::Gradients, Self::CustomIcons, Self::Animations, Self::VibeCoded, Self::BuiltIns];
 
   fn name(self) -> &'static str {
     match self {
       Self::Gradients => "gradients",
       Self::CustomIcons => "custom-icons",
       Self::Animations => "animations",
+      Self::VibeCoded => "vibe-coded",
       Self::BuiltIns => "built-ins",
     }
   }
@@ -207,61 +210,61 @@ fn main() -> io::Result<()> {
     Example {
       filename: "vibe-coded-01-sparkles.svg",
       alt: "Vibe Coded: static sparkles",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["581c87", "1e3a8a", "164e63"]).icon_svg(VIBE_CODED_ICON),
     },
     Example {
       filename: "vibe-coded-02-midnight.svg",
       alt: "Vibe Coded: midnight",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["581c87", "1e3a8a", "164e63"]),
     },
     Example {
       filename: "vibe-coded-03-sunset.svg",
       alt: "Vibe Coded: sunset",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["7c2d12", "9f1239", "581c87"]),
     },
     Example {
       filename: "vibe-coded-04-synthwave.svg",
       alt: "Vibe Coded: synthwave",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["831843", "6b21a8", "1e40af"]),
     },
     Example {
       filename: "vibe-coded-05-ocean.svg",
       alt: "Vibe Coded: ocean",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["083344", "155e75", "1e3a8a"]),
     },
     Example {
       filename: "vibe-coded-06-emerald.svg",
       alt: "Vibe Coded: emerald",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["14532d", "115e59", "164e63"]),
     },
     Example {
       filename: "vibe-coded-07-candy.svg",
       alt: "Vibe Coded: candy",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["9d174d", "6b21a8", "155e75"]),
     },
     Example {
       filename: "vibe-coded-08-ember.svg",
       alt: "Vibe Coded: ember",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["7f1d1d", "9a3412", "701a75"]),
     },
     Example {
       filename: "vibe-coded-09-ultraviolet.svg",
       alt: "Vibe Coded: ultraviolet",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["312e81", "581c87", "831843"]),
     },
     Example {
       filename: "vibe-coded-10-cosmic.svg",
       alt: "Vibe Coded: cosmic",
-      section: Section::Animations,
+      section: Section::VibeCoded,
       badge: vibe_badge(["172554", "4c1d95", "701a75"]),
     },
     Example {
