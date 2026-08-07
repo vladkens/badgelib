@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::Color;
 #[cfg(feature = "axum")]
 use crate::param::Format;
-use crate::param::{Period, Style};
+use crate::param::{Animation, Period, Style};
 use crate::utils::{
   cacl_width, empty_string_as_none, get_icon, millify, millify_iec, rating_color, text_color,
   to_icon_uri,
@@ -18,10 +18,6 @@ fn default_cache() -> u32 {
 fn gradient_offset(index: usize, color_count: usize) -> String {
   let offset = index as f32 * 100.0 / (color_count - 1) as f32;
   format!("{offset:.3}%")
-}
-
-fn is_false(value: &bool) -> bool {
-  !value
 }
 
 /// Repeats `colors` into two back-to-back periods that both start and end on
@@ -48,6 +44,69 @@ fn flow_period(box_width: f32, color_count: usize) -> f32 {
 /// scrolls at the same speed regardless of how many colors it has to cover.
 fn flow_duration(period: f32, box_width: f32) -> f32 {
   6.0 * period / box_width
+}
+
+fn rgb_to_hsl(color: &Color) -> (f32, f32, f32) {
+  let hex = color.to_hex();
+  let r = u8::from_str_radix(&hex[0..2], 16).unwrap() as f32 / 255.0;
+  let g = u8::from_str_radix(&hex[2..4], 16).unwrap() as f32 / 255.0;
+  let b = u8::from_str_radix(&hex[4..6], 16).unwrap() as f32 / 255.0;
+  let max = r.max(g).max(b);
+  let min = r.min(g).min(b);
+  let delta = max - min;
+  let lightness = (max + min) / 2.0;
+  let saturation = if delta == 0.0 { 0.0 } else { delta / (1.0 - (2.0 * lightness - 1.0).abs()) };
+  let hue = if delta == 0.0 {
+    0.0
+  } else if max == r {
+    60.0 * ((g - b) / delta).rem_euclid(6.0)
+  } else if max == g {
+    60.0 * ((b - r) / delta + 2.0)
+  } else {
+    60.0 * ((r - g) / delta + 4.0)
+  };
+  (hue, saturation, lightness)
+}
+
+fn hsl_to_css(hue: f32, saturation: f32, lightness: f32) -> String {
+  let chroma = (1.0 - (2.0 * lightness - 1.0).abs()) * saturation;
+  let h = hue.rem_euclid(360.0) / 60.0;
+  let x = chroma * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
+  let (r, g, b) = match h {
+    h if h < 1.0 => (chroma, x, 0.0),
+    h if h < 2.0 => (x, chroma, 0.0),
+    h if h < 3.0 => (0.0, chroma, x),
+    h if h < 4.0 => (0.0, x, chroma),
+    h if h < 5.0 => (x, 0.0, chroma),
+    _ => (chroma, 0.0, x),
+  };
+  let m = lightness - chroma / 2.0;
+  let channel = |value: f32| ((value + m) * 255.0).round() as u8;
+  format!("#{:02x}{:02x}{:02x}", channel(r), channel(g), channel(b))
+}
+
+fn aurora_palette(colors: &[Color]) -> ([String; 3], f32) {
+  let hsl = colors.iter().map(rgb_to_hsl).collect::<Vec<_>>();
+  let (_, saturation, _) =
+    hsl.iter().copied().max_by(|a, b| a.1.total_cmp(&b.1)).unwrap_or((170.0, 0.0, 0.5));
+  let hue = if saturation < 0.12 {
+    170.0
+  } else {
+    hsl.iter().copied().max_by(|a, b| a.1.total_cmp(&b.1)).unwrap().0
+  };
+  let average_lightness =
+    hsl.iter().map(|(_, _, lightness)| lightness).sum::<f32>() / hsl.len() as f32;
+  let (lightness, opacity) =
+    if average_lightness > 0.62 { ([0.36, 0.42, 0.38], 0.28) } else { ([0.60, 0.66, 0.62], 0.38) };
+  let saturation = saturation.max(0.72);
+  (
+    [
+      hsl_to_css(hue - 25.0, saturation, lightness[0]),
+      hsl_to_css(hue + 25.0, saturation, lightness[1]),
+      hsl_to_css(hue + 80.0, saturation, lightness[2]),
+    ],
+    opacity,
+  )
 }
 
 fn gradient_text_color(colors: &[Color]) -> Color {
@@ -115,15 +174,9 @@ pub struct Badge {
   #[serde(skip)]
   icon_svg: Option<String>,
 
-  /// Set via [`Badge::flow`] to animate `label_gradient` and/or
-  /// `value_gradient` as a continuously scrolling loop.
-  #[serde(rename = "flow", default, skip_serializing_if = "is_false")]
-  flow_animated: bool,
-
-  /// Set via [`Badge::shine`] to sweep a light streak across the badge on a
-  /// loop.
-  #[serde(rename = "shine", default, skip_serializing_if = "is_false")]
-  shine_animated: bool,
+  /// The background animation selected via [`Badge::animation`].
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  animation: Option<Animation>,
 
   #[serde(rename = "radius")]
   radius: Option<u8>,
@@ -204,18 +257,10 @@ impl Badge {
     self
   }
 
-  /// Animates `label_gradient` and/or `value_gradient` as a continuously
-  /// scrolling loop instead of a static fill. Has no effect on a side
-  /// without a gradient set via [`Badge::label_gradient`] /
-  /// [`Badge::value_gradient`].
-  pub fn flow(mut self) -> Self {
-    self.flow_animated = true;
-    self
-  }
-
-  /// Periodically sweeps a soft diagonal light streak across the badge.
-  pub fn shine(mut self) -> Self {
-    self.shine_animated = true;
+  /// Selects one opinionated background animation. Calling this method again
+  /// replaces the previously selected animation.
+  pub fn animation(mut self, animation: Animation) -> Self {
+    self.animation = Some(animation);
     self
   }
 
@@ -404,6 +449,9 @@ impl Badge {
 
   /// Renders the badge as a complete SVG document.
   pub fn to_svg(&self) -> String {
+    let flow_animated = self.animation == Some(Animation::Flow);
+    let shine_animated = self.animation == Some(Animation::Shine);
+    let aurora_animated = self.animation == Some(Animation::Aurora);
     let icon = self
       .icon_svg
       .as_deref()
@@ -450,6 +498,13 @@ impl Badge {
 
     let lb_color = self.label_color.clone().unwrap_or(Color::Black);
     let rb_color = self.value_color.clone().unwrap_or(Color::Blue);
+    let aurora = if aurora_animated {
+      let mut colors = self.label_gradient.clone().unwrap_or_else(|| vec![lb_color.clone()]);
+      colors.extend(self.value_gradient.clone().unwrap_or_else(|| vec![rb_color.clone()]));
+      Some(aurora_palette(&colors))
+    } else {
+      None
+    };
     let lt_color = self
       .label_gradient
       .as_deref()
@@ -470,21 +525,55 @@ impl Badge {
 
     let bg_rects = maud::html!(
       @if has_text || has_icon {
-        @if self.flow_animated && self.label_gradient.is_some() {
+        @if flow_animated && self.label_gradient.is_some() {
           rect class="flow-label" x="0" y="0" width=(w) height=(h) fill="url(#lg)" {}
         } @else {
           rect x="0" y="0" width=(w) height=(h)
             fill=(if self.label_gradient.is_some() { "url(#lg)" } else { &lb_color }) {}
         }
       }
-      @if self.flow_animated && self.value_gradient.is_some() {
+      @if flow_animated && self.value_gradient.is_some() {
         rect class="flow-value" x=(w-rw) y="0" width=(rw) height=(h) fill="url(#vg)" rx=(0) {}
       } @else {
         rect x=(w-rw) y="0" width=(rw) height=(h)
           fill=(if self.value_gradient.is_some() { "url(#vg)" } else { &rb_color }) rx=(0) {}
       }
       rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
-      @if self.shine_animated {
+      @if let Some((colors, opacity)) = &aurora {
+        @let shapes = maud::html! {
+          ellipse cx=(w*0.18) cy=(h*0.15) rx=(w*0.42) ry=(h*0.78)
+            fill=(&colors[0]) fill-opacity=(opacity) {}
+          ellipse cx=(w*0.58) cy=(h*0.78) rx=(w*0.38) ry=(h*0.72)
+            fill=(&colors[1]) fill-opacity=(opacity*0.9) {}
+          ellipse cx=(w*0.92) cy=(h*0.28) rx=(w*0.34) ry=(h*0.68)
+            fill=(&colors[2]) fill-opacity=(opacity*0.8) {}
+        };
+        g class="aurora-static" filter="url(#aurora-blur)" { (shapes.clone()) }
+        g class="aurora-motion" filter="url(#aurora-blur)" {
+          ellipse cx=(w*0.18) cy=(h*0.15) rx=(w*0.42) ry=(h*0.78)
+            fill=(&colors[0]) fill-opacity=(opacity) {
+            (maud::PreEscaped(format!(
+              r#"<animate attributeName="cx" values="{};{};{}" dur="11s" repeatCount="indefinite" />"#,
+              w * 0.18, w * 0.82, w * 0.18
+            )))
+          }
+          ellipse cx=(w*0.58) cy=(h*0.78) rx=(w*0.38) ry=(h*0.72)
+            fill=(&colors[1]) fill-opacity=(opacity*0.9) {
+            (maud::PreEscaped(format!(
+              r#"<animate attributeName="cx" values="{};{};{}" dur="14s" repeatCount="indefinite" />"#,
+              w * 0.72, w * 0.22, w * 0.72
+            )))
+          }
+          ellipse cx=(w*0.92) cy=(h*0.28) rx=(w*0.34) ry=(h*0.68)
+            fill=(&colors[2]) fill-opacity=(opacity*0.8) {
+            (maud::PreEscaped(format!(
+              r#"<animate attributeName="cx" values="{};{};{}" dur="17s" repeatCount="indefinite" />"#,
+              w * 0.92, w * 0.38, w * 0.92
+            )))
+          }
+        }
+      }
+      @if shine_animated {
         @let band = h * 1.15;
         rect class="shine" y="0" width=(band) height=(h) fill="url(#sh)" {
           (maud::PreEscaped(format!(
@@ -505,7 +594,13 @@ impl Badge {
     {
       title { (title) }
 
-      @if self.flow_animated || self.shine_animated {
+      @if aurora_animated {
+        style {
+          (maud::PreEscaped(
+            ".aurora-static{display:none}@media (prefers-reduced-motion: reduce) {.aurora-motion{display:none}.aurora-static{display:inline}}"
+          ))
+        }
+      } @else if self.animation.is_some() {
         style {
           (maud::PreEscaped(
             "@media (prefers-reduced-motion: reduce) {.flow-label{fill:url(#lgs)}.flow-value{fill:url(#vgs)}.shine{display:none}}"
@@ -522,7 +617,7 @@ impl Badge {
       }
 
       @if let Some(colors) = &self.label_gradient {
-        @if self.flow_animated {
+        @if flow_animated {
           linearGradient id="lgs" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2=(w-rw) y2="0" {
             @for (index, color) in colors.iter().enumerate() {
               stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
@@ -550,7 +645,7 @@ impl Badge {
       }
 
       @if let Some(colors) = &self.value_gradient {
-        @if self.flow_animated {
+        @if flow_animated {
           linearGradient id="vgs" gradientUnits="userSpaceOnUse" x1=(w-rw) y1="0" x2=(w) y2="0" {
             @for (index, color) in colors.iter().enumerate() {
               stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
@@ -577,13 +672,19 @@ impl Badge {
         }
       }
 
-      @if self.shine_animated {
+      @if shine_animated {
         linearGradient id="sh" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(-12 .5 .5)" {
           stop offset="0%" stop-color="#fff" stop-opacity="0" {}
           stop offset="38%" stop-color="#fff" stop-opacity="0.05" {}
           stop offset="50%" stop-color="#fff" stop-opacity="0.3" {}
           stop offset="62%" stop-color="#fff" stop-opacity="0.05" {}
           stop offset="100%" stop-color="#fff" stop-opacity="0" {}
+        }
+      }
+
+      @if aurora_animated {
+        filter id="aurora-blur" x="-30%" y="-80%" width="160%" height="260%" {
+          feGaussianBlur stdDeviation=(h*0.22) {}
         }
       }
 
@@ -676,8 +777,11 @@ mod tests {
 
   #[test]
   fn test_flow_animates_value_gradient() {
-    let badge =
-      Badge::new().label("build").value("flowing").value_gradient([Color::Red, Color::Blue]).flow();
+    let badge = Badge::new()
+      .label("build")
+      .value("flowing")
+      .value_gradient([Color::Red, Color::Blue])
+      .animation(Animation::Flow);
     let svg = badge.to_svg();
 
     assert!(svg.contains(r#"id="vg""#));
@@ -703,7 +807,7 @@ mod tests {
 
   #[test]
   fn test_flow_without_gradient_has_no_effect() {
-    let badge = Badge::new().value("build").value_color(Color::Green).flow();
+    let badge = Badge::new().value("build").value_color(Color::Green).animation(Animation::Flow);
     let svg = badge.to_svg();
 
     assert!(!svg.contains(r#"id="vg""#));
@@ -712,8 +816,11 @@ mod tests {
 
   #[test]
   fn test_flow_animates_label_gradient() {
-    let badge =
-      Badge::new().label("flowing").value("build").label_gradient([Color::Red, Color::Blue]).flow();
+    let badge = Badge::new()
+      .label("flowing")
+      .value("build")
+      .label_gradient([Color::Red, Color::Blue])
+      .animation(Animation::Flow);
     let svg = badge.to_svg();
 
     assert!(svg.contains(r#"id="lg""#));
@@ -727,7 +834,7 @@ mod tests {
       .label_gradient([Color::Red, Color::Blue])
       .value("b")
       .value_gradient([Color::Cyan, Color::Orange])
-      .flow();
+      .animation(Animation::Flow);
     let svg = badge.to_svg();
 
     assert_eq!(svg.matches("<animateTransform").count(), 2);
@@ -735,7 +842,7 @@ mod tests {
 
   #[test]
   fn test_shine() {
-    let badge = Badge::new().value("passing").shine();
+    let badge = Badge::new().value("passing").animation(Animation::Shine);
     let svg = badge.to_svg();
 
     assert!(svg.contains(r#"id="sh""#));
@@ -756,16 +863,35 @@ mod tests {
   }
 
   #[test]
-  fn test_animation_settings_round_trip_through_json() {
-    let badge =
-      Badge::new().value("passing").value_gradient([Color::Red, Color::Blue]).flow().shine();
+  fn test_aurora_derives_a_palette_and_respects_reduced_motion() {
+    let svg =
+      Badge::new().value("aurora").value_color(Color::Blue).animation(Animation::Aurora).to_svg();
+
+    assert!(svg.contains(r#"id="aurora-blur""#));
+    assert!(svg.contains(r#"class="aurora-motion""#));
+    assert!(svg.contains(r#"class="aurora-static""#));
+    assert!(svg.contains("feGaussianBlur"));
+    assert!(svg.contains(".aurora-motion{display:none}"));
+  }
+
+  #[test]
+  fn test_aurora_is_off_by_default() {
+    assert!(!Badge::new().value("plain").to_svg().contains("aurora-blur"));
+  }
+
+  #[test]
+  fn test_animation_is_replaced_and_round_trips_through_json() {
+    let badge = Badge::new()
+      .value("passing")
+      .value_gradient([Color::Red, Color::Blue])
+      .animation(Animation::Flow)
+      .animation(Animation::Shine)
+      .animation(Animation::Aurora);
     let json = badge.to_json();
     let restored: Badge = serde_json::from_str(&json).unwrap();
 
-    assert!(json.contains(r#""flow":true"#));
-    assert!(json.contains(r#""shine":true"#));
-    assert!(restored.flow_animated);
-    assert!(restored.shine_animated);
+    assert!(json.contains(r#""animation":"aurora""#));
+    assert_eq!(restored.animation, Some(Animation::Aurora));
   }
 
   #[test]

@@ -2,7 +2,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use badgelib::{Badge, Color, Period};
+use badgelib::{Animation, Badge, Color, Period};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
@@ -136,7 +136,7 @@ fn main() -> io::Result<()> {
         .label("build")
         .value("flowing")
         .value_gradient([hex("a855f7"), hex("3b82f6"), hex("ec4899"), hex("06b6d4")])
-        .flow()
+        .animation(Animation::Flow)
         .logo("rust"),
     },
     Example {
@@ -148,7 +148,7 @@ fn main() -> io::Result<()> {
         .value("build")
         .label_gradient([hex("a855f7"), hex("3b82f6"), hex("ec4899"), hex("06b6d4")])
         .value_color(hex("18181b"))
-        .flow()
+        .animation(Animation::Flow)
         .logo("rust"),
     },
     Example {
@@ -160,7 +160,7 @@ fn main() -> io::Result<()> {
         .label_gradient([hex("334155"), hex("7c3aed")])
         .value("stable")
         .value_gradient([hex("ec4899"), hex("f97316")])
-        .flow()
+        .animation(Animation::Flow)
         .logo("github"),
     },
     Example {
@@ -171,8 +171,28 @@ fn main() -> io::Result<()> {
         .label("build")
         .value("passing")
         .value_color(hex("18181b"))
-        .shine()
+        .animation(Animation::Shine)
         .logo("rust"),
+    },
+    Example {
+      filename: "aurora-color.svg",
+      alt: "Aurora (solid background)",
+      section: Section::Animations,
+      badge: Badge::new()
+        .label("nightly")
+        .value("aurora")
+        .value_color(hex("1e3a8a"))
+        .animation(Animation::Aurora)
+        .logo("rust"),
+    },
+    Example {
+      filename: "aurora-gradient.svg",
+      alt: "Aurora (gradient background)",
+      section: Section::Animations,
+      badge: Badge::new()
+        .value("northern lights")
+        .value_gradient([hex("0f172a"), hex("164e63"), hex("312e81")])
+        .animation(Animation::Aurora),
     },
     Example {
       filename: "version.svg",

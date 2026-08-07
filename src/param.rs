@@ -12,6 +12,20 @@ pub enum Period {
   Total,
 }
 
+// MARK: Animation
+
+/// An opinionated background animation applied to a badge.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Animation {
+  /// Scrolls every configured label or value gradient.
+  Flow,
+  /// Sweeps a light streak across the full badge.
+  Shine,
+  /// Drifts softly blurred lights across the full badge.
+  Aurora,
+}
+
 // MARK: Color
 
 #[derive(Debug, Default, Clone, PartialEq)]

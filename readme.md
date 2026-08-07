@@ -86,21 +86,31 @@ let svg = Badge::new()
 
 ## Animations
 
-Each animation is its own method: no speed, direction, or easing to configure, just turn it on. Both animations respect the viewer's reduced-motion preference.
+Select one opinionated animation with `animation`. Calling it again replaces the previous selection; speed, direction, easing, and target area are intentionally not configurable. All animations respect the viewer's reduced-motion preference.
 
-`.flow()` scrolls `label_gradient` and/or `value_gradient` continuously — animates whichever side(s) have a gradient set:
+`Animation::Flow` scrolls every configured gradient continuously. A gradient on only the label or value animates only that section; solid-color sections remain static.
 
 ```rust
-use badgelib::{Badge, Color};
+use badgelib::{Animation, Badge, Color};
 
 let svg = Badge::new()
   .value("flowing")
   .value_gradient([Color::Red, Color::Orange, Color::Cyan])
-  .flow()
+  .animation(Animation::Flow)
   .to_svg();
 ```
 
-`.shine()` periodically sweeps a soft diagonal light streak across the badge:
+`Animation::Shine` periodically sweeps a soft diagonal light streak across the full width of the badge, including both label and value sections.
+
+`Animation::Aurora` layers one continuous field of slowly drifting, softly blurred lights across the full badge. Its palette is derived from all existing label and value background colors.
+
+```rust
+let svg = Badge::new()
+  .value("northern lights")
+  .value_color(Color::Blue)
+  .animation(Animation::Aurora)
+  .to_svg();
+```
 
 <!-- examples:animations:start -->
 <p align="center">
@@ -108,6 +118,8 @@ let svg = Badge::new()
   <img src="examples/label-gradient-animated.svg" alt="Flow (label side)">
   <img src="examples/dual-gradient-animated.svg" alt="Flow (both sides)">
   <img src="examples/shine-animated.svg" alt="Shine">
+  <img src="examples/aurora-color.svg" alt="Aurora (solid background)">
+  <img src="examples/aurora-gradient.svg" alt="Aurora (gradient background)">
 </p>
 <!-- examples:animations:end -->
 
