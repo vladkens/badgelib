@@ -112,6 +112,8 @@ let svg = Badge::new()
   .to_svg();
 ```
 
+The `Vibe Coded` examples combine Aurora with ten animated multicolor icon directions. The generated SVGs are ready to embed directly in a README.
+
 <!-- examples:animations:start -->
 <p align="center">
   <img src="examples/value-gradient-animated.svg" alt="Flow (value side)">
@@ -122,6 +124,19 @@ let svg = Badge::new()
   <img src="examples/aurora-gradient.svg" alt="Aurora (gradient background)">
 </p>
 <!-- examples:animations:end -->
+
+<p align="center">
+  <img src="examples/vibe-coded-01-sparkles.svg" alt="Vibe Coded: sparkles">
+  <img src="examples/vibe-coded-02-wand.svg" alt="Vibe Coded: magic wand">
+  <img src="examples/vibe-coded-03-rainbow.svg" alt="Vibe Coded: rainbow">
+  <img src="examples/vibe-coded-04-comet.svg" alt="Vibe Coded: comet">
+  <img src="examples/vibe-coded-05-heart.svg" alt="Vibe Coded: pixel heart">
+  <img src="examples/vibe-coded-06-flower.svg" alt="Vibe Coded: flower">
+  <img src="examples/vibe-coded-07-orbit.svg" alt="Vibe Coded: orbit">
+  <img src="examples/vibe-coded-08-bolt.svg" alt="Vibe Coded: lightning">
+  <img src="examples/vibe-coded-09-prism.svg" alt="Vibe Coded: prism">
+  <img src="examples/vibe-coded-10-code.svg" alt="Vibe Coded: playful code">
+</p>
 
 ## Built-in badge types
 

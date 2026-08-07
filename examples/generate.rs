@@ -32,6 +32,35 @@ struct Example {
   badge: Badge,
 }
 
+fn vibe_icon(body: &str) -> String {
+  format!(
+    r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <style>
+        .pulse, .spin, .bob, .twinkle {{ transform-box: fill-box; transform-origin: center; }}
+        .pulse {{ animation: pulse 1.8s ease-in-out infinite; }}
+        .spin {{ animation: spin 5s linear infinite; }}
+        .bob {{ animation: bob 1.8s ease-in-out infinite; }}
+        .twinkle {{ animation: twinkle 1.6s ease-in-out infinite alternate; }}
+        .late {{ animation-delay: -.8s; }}
+        @keyframes pulse {{ 50% {{ transform: scale(1.14) rotate(5deg); }} }}
+        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+        @keyframes bob {{ 50% {{ transform: translateY(-2px); }} }}
+        @keyframes twinkle {{ from {{ transform: scale(.68) rotate(-10deg); opacity: .55; }} to {{ transform: scale(1.08) rotate(10deg); opacity: 1; }} }}
+        @media (prefers-reduced-motion: reduce) {{ .pulse, .spin, .bob, .twinkle {{ animation: none; opacity: 1; }} }}
+      </style>
+      {body}
+    </svg>"##
+  )
+}
+
+fn vibe_badge(icon: &str) -> Badge {
+  Badge::new()
+    .value("Vibe Coded")
+    .value_gradient([hex("581c87"), hex("1e3a8a"), hex("164e63")])
+    .icon_svg(vibe_icon(icon))
+    .animation(Animation::Aurora)
+}
+
 fn hex(value: &str) -> Color {
   Color::try_from(value).expect("example colors must be valid")
 }
@@ -193,6 +222,86 @@ fn main() -> io::Result<()> {
         .value("northern lights")
         .value_gradient([hex("0f172a"), hex("164e63"), hex("312e81")])
         .animation(Animation::Aurora),
+    },
+    Example {
+      filename: "vibe-coded-01-sparkles.svg",
+      alt: "Vibe Coded: sparkles",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<path class="twinkle" d="M8 1.5 10 9l7.5 2-7.5 2L8 20.5 6 13l-5.5-2L6 9Z" fill="#f472b6"/><path class="twinkle late" d="m18 3 1.2 3.8L23 8l-3.8 1.2L18 13l-1.2-3.8L13 8l3.8-1.2Z" fill="#22d3ee"/><circle cx="19" cy="18.5" r="3" fill="#facc15"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-02-wand.svg",
+      alt: "Vibe Coded: magic wand",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="bob"><path d="m5 20 11-11 3 3L8 23Z" fill="#22d3ee"/><path d="m15.2 9.8 2.6-2.6 3 3-2.6 2.6Z" fill="#f472b6"/></g><path class="twinkle" d="m7 1 1.3 3.7L12 6 8.3 7.3 7 11 5.7 7.3 2 6l3.7-1.3Z" fill="#facc15"/><path class="twinkle late" d="m18 1 .7 2.3L21 4l-2.3.7L18 7l-.7-2.3L15 4l2.3-.7Z" fill="#a78bfa"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-03-rainbow.svg",
+      alt: "Vibe Coded: rainbow",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="pulse" fill="none" stroke-linecap="round" stroke-width="3"><path d="M3 18a9 9 0 0 1 18 0" stroke="#f472b6"/><path d="M6 18a6 6 0 0 1 12 0" stroke="#facc15"/><path d="M9 18a3 3 0 0 1 6 0" stroke="#22d3ee"/></g><circle cx="3" cy="19" r="2" fill="#e0f2fe"/><circle cx="21" cy="19" r="2" fill="#e0f2fe"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-04-comet.svg",
+      alt: "Vibe Coded: comet",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="bob"><path d="M2 18 14 6l4 4L6 22Z" fill="#22d3ee" opacity=".65"/><path d="m2 12 10-6 6 6-10 6Z" fill="#a78bfa" opacity=".75"/><circle cx="17" cy="7" r="5" fill="#f472b6"/><circle cx="18.5" cy="5.5" r="1.7" fill="#facc15"/></g>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-05-heart.svg",
+      alt: "Vibe Coded: pixel heart",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="pulse"><path d="M2 5h7v3h6V5h7v11h-3v3h-3v3H8v-3H5v-3H2Z" fill="#f472b6"/><path d="M5 8h4v3H5Zm10 0h4v3h-4Z" fill="#facc15"/><path d="M9 14h6v5H9Z" fill="#a78bfa"/></g>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-06-flower.svg",
+      alt: "Vibe Coded: flower",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="spin"><ellipse cx="12" cy="5" rx="4" ry="5" fill="#f472b6"/><ellipse cx="12" cy="19" rx="4" ry="5" fill="#22d3ee"/><ellipse cx="5" cy="12" rx="5" ry="4" fill="#a78bfa"/><ellipse cx="19" cy="12" rx="5" ry="4" fill="#facc15"/></g><circle class="pulse" cx="12" cy="12" r="4.5" fill="#fb7185"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-07-orbit.svg",
+      alt: "Vibe Coded: orbit",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="spin"><ellipse cx="12" cy="12" rx="10" ry="4.5" fill="none" stroke="#22d3ee" stroke-width="2"/><circle cx="22" cy="12" r="2.5" fill="#facc15"/><ellipse cx="12" cy="12" rx="4.5" ry="10" fill="none" stroke="#f472b6" stroke-width="2"/><circle cx="12" cy="2" r="2" fill="#a78bfa"/></g><circle class="pulse" cx="12" cy="12" r="4" fill="#fb7185"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-08-bolt.svg",
+      alt: "Vibe Coded: lightning",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<path class="pulse" d="M13 1 4 14h7l-1 9 10-14h-7Z" fill="#facc15" stroke="#f472b6" stroke-width="1.5" stroke-linejoin="round"/><circle class="twinkle" cx="4" cy="5" r="2.5" fill="#22d3ee"/><circle class="twinkle late" cx="20" cy="19" r="2" fill="#a78bfa"/>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-09-prism.svg",
+      alt: "Vibe Coded: prism",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="bob"><path d="m12 2 10 19H2Z" fill="#a78bfa" stroke="#e0f2fe" stroke-width="1.5" stroke-linejoin="round"/><path d="m12 2 2.7 13.5L22 21Z" fill="#22d3ee" opacity=".75"/><path d="m2 21 9-8 3.7 2.5L22 21Z" fill="#f472b6" opacity=".8"/><path d="m5 15 6-2 3.7 2.5L20 14" fill="none" stroke="#facc15" stroke-width="2"/></g>"##,
+      ),
+    },
+    Example {
+      filename: "vibe-coded-10-code.svg",
+      alt: "Vibe Coded: playful code",
+      section: Section::Animations,
+      badge: vibe_badge(
+        r##"<g class="pulse" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"><path d="m8 5-6 7 6 7" stroke="#f472b6"/><path d="m16 5 6 7-6 7" stroke="#22d3ee"/><path d="m14 3-4 18" stroke="#facc15"/></g>"##,
+      ),
     },
     Example {
       filename: "version.svg",
