@@ -6,8 +6,8 @@ use crate::Color;
 use crate::param::Format;
 use crate::param::{Animation, Period, Style};
 use crate::utils::{
-  cacl_width, empty_string_as_none, get_icon, millify, millify_iec, rating_color, text_color,
-  to_icon_uri,
+  cacl_width, empty_string_as_none, get_icon, license_color, millify, millify_iec, rating_color,
+  text_color, to_icon_uri,
 };
 
 #[cfg(feature = "axum")]
@@ -328,12 +328,12 @@ impl Badge {
     self
   }
 
-  /// Configures a blue license badge.
+  /// Configures a license badge with a color based on the license family.
   pub fn for_license(mut self, license: &str) -> Self {
     self.label = self.label.or(Some("license".into()));
     self.value = Some(license.into());
     if self.value_color.is_none() && self.value_gradient.is_none() {
-      self.value_color = Some(Color::Blue);
+      self.value_color = Some(license_color(license));
     }
     self
   }
@@ -944,5 +944,45 @@ mod tests {
     // Test v0 version
     let rs = Badge::new().for_version("pkg", "v0.1.0");
     assert_eq!(rs.value_color, Some(Color::Orange));
+  }
+
+  #[test]
+  fn test_for_license_colors() {
+    for license in ["MIT", "Apache-2.0", "Apache 2.0", "BSD-3-Clause"] {
+      assert_eq!(Badge::new().for_license(license).value_color, Some(Color::Blue));
+    }
+
+    for license in ["GPL-3.0-or-later", "LGPLv3+", "MPL 2.0"] {
+      assert_eq!(Badge::new().for_license(license).value_color, Some(Color::Orange));
+    }
+
+    for license in ["CC0-1.0", "Unlicense", "0BSD"] {
+      assert_eq!(Badge::new().for_license(license).value_color, Some(Color::Lime));
+    }
+
+    for license in ["unknown", "NOASSERTION", ""] {
+      assert_eq!(Badge::new().for_license(license).value_color, Some(Color::Gray));
+    }
+  }
+
+  #[test]
+  fn test_for_license_expressions() {
+    assert_eq!(Badge::new().for_license("GPL-3.0-only OR MIT").value_color, Some(Color::Blue));
+    assert_eq!(Badge::new().for_license("MIT AND CC0-1.0").value_color, Some(Color::Lime));
+    assert_eq!(
+      Badge::new().for_license("GPL-2.0-only WITH Classpath-exception-2.0").value_color,
+      Some(Color::Orange)
+    );
+    assert_eq!(Badge::new().for_license("Apache 2.0 | GPLv3").value_color, Some(Color::Blue));
+  }
+
+  #[test]
+  fn test_for_license_preserves_custom_color() {
+    let solid = Badge::new().value_color(Color::Red).for_license("MIT");
+    assert_eq!(solid.value_color, Some(Color::Red));
+
+    let gradient = Badge::new().value_gradient([Color::Red, Color::Blue]).for_license("MIT");
+    assert_eq!(gradient.value_color, None);
+    assert_eq!(gradient.value_gradient, Some(vec![Color::Red, Color::Blue]));
   }
 }

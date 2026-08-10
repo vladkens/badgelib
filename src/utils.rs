@@ -101,6 +101,52 @@ pub(crate) fn text_color(bg_color: &Color) -> Color {
   if luminance > 0.85 { Color::Black } else { Color::White }
 }
 
+#[derive(Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+enum LicenseKind {
+  Unknown,
+  Copyleft,
+  Permissive,
+  PublicDomain,
+}
+
+fn license_kind(value: &str) -> LicenseKind {
+  match value.trim() {
+    "AFL-3.0" | "APACHE-2.0" | "APACHE 2.0" | "APACHE LICENSE 2.0" | "ARTISTIC-2.0" | "BSD"
+    | "BSD-2-CLAUSE" | "BSD-3-CLAUSE" | "BSD-3-CLAUSE-CLEAR" | "BSL-1.0" | "CC-BY-4.0"
+    | "ECL-2.0" | "ISC" | "MIT" | "MIT LICENSE" | "MS-PL" | "NCSA" | "POSTGRESQL" | "ZLIB" => {
+      LicenseKind::Permissive
+    }
+    "AGPL-1.0-ONLY" | "AGPL-1.0-OR-LATER" | "AGPL-3.0" | "AGPL-3.0-ONLY" | "AGPL-3.0-OR-LATER"
+    | "AGPLV3+" | "CC-BY-SA-4.0" | "EPL" | "EPL-1.0" | "EPL-2.0" | "EUPL-1.1" | "GPL"
+    | "GPL-1.0-ONLY" | "GPL-1.0-OR-LATER" | "GPL-2.0" | "GPL-2.0-ONLY" | "GPL-2.0-OR-LATER"
+    | "GPL-3.0" | "GPL-3.0-ONLY" | "GPL-3.0-OR-LATER" | "GPLV2" | "GPLV2+" | "GPLV3" | "GPLV3+"
+    | "LGPL" | "LGPL-2.0-ONLY" | "LGPL-2.0-OR-LATER" | "LGPL-2.1" | "LGPL-2.1-ONLY"
+    | "LGPL-2.1-OR-LATER" | "LGPL-3.0" | "LGPL-3.0-ONLY" | "LGPL-3.0-OR-LATER" | "LGPLV2"
+    | "LGPLV2+" | "LGPLV3" | "LGPLV3+" | "LPPL-1.3C" | "MPL" | "MPL 1.1" | "MPL 2.0"
+    | "MPL-2.0" | "MS-RL" | "OFL-1.1" | "OSL-3.0" => LicenseKind::Copyleft,
+    "0BSD" | "CC0" | "CC0-1.0" | "UNLICENSE" | "WTFPL" => LicenseKind::PublicDomain,
+    _ => LicenseKind::Unknown,
+  }
+}
+
+pub(crate) fn license_color(license: &str) -> Color {
+  let normalized = license.split_whitespace().collect::<Vec<_>>().join(" ").to_uppercase();
+  let normalized = normalized.replace(" OR ", "|").replace(" AND ", "|").replace(" WITH ", "|");
+  let kind = normalized
+    .split(['|', ',', '/', ';', '&', '(', ')'])
+    .flat_map(|part| std::iter::once(part).chain(part.split_ascii_whitespace()))
+    .map(license_kind)
+    .max()
+    .unwrap_or(LicenseKind::Unknown);
+
+  match kind {
+    LicenseKind::Permissive => Color::Blue,
+    LicenseKind::Copyleft => Color::Orange,
+    LicenseKind::PublicDomain => Color::Lime,
+    LicenseKind::Unknown => Color::Gray,
+  }
+}
+
 pub(crate) fn rating_color<T: Into<f64>>(value: T, max_value: T) -> Color {
   let (value, max_value) = (value.into(), max_value.into());
 
