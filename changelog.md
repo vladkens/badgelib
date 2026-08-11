@@ -1,3 +1,15 @@
+## v0.4.0 – 2026-08-11
+
+### Features
+
+- Added adaptive precision for compact counts across `k`, `M`, `B`, and `T` scales
+- Added license-aware badge colors for permissive, copyleft, public-domain, and unknown licenses
+- Added support for Simple Icons slugs removed or renamed in historical releases
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.3.0...v0.4.0
+
+---
+
 ## v0.3.0 – 2026-08-07
 
 ### Features
