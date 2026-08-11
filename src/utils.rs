@@ -58,8 +58,8 @@ pub fn millify(n: u64) -> String {
 pub fn millify_iec(n: u64) -> String {
   let mut n = n as f64;
   let mut i = 0;
-  let units = ["", "KiB", "MiB", "GiB", "TiB"];
-  while n >= 1_024.0 {
+  let units = ["", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
+  while n >= 1_024.0 && i < units.len() - 1 {
     n /= 1_024.0;
     i += 1;
   }
@@ -164,12 +164,16 @@ pub(crate) fn license_color(license: &str) -> Color {
 
 pub(crate) fn rating_color<T: Into<f64>>(value: T, max_value: T) -> Color {
   let (value, max_value) = (value.into(), max_value.into());
+  if !value.is_finite() || !max_value.is_finite() || max_value <= 0.0 {
+    return Color::Red;
+  }
+  let score = (value / max_value).clamp(0.0, 1.0);
 
-  match value {
-    x if x >= max_value * 0.80 => Color::Green,
-    x if x >= max_value * 0.60 => Color::Lime,
-    x if x >= max_value * 0.40 => Color::Yellow,
-    x if x >= max_value * 0.20 => Color::Orange,
+  match score {
+    x if x >= 0.80 => Color::Green,
+    x if x >= 0.60 => Color::Lime,
+    x if x >= 0.40 => Color::Yellow,
+    x if x >= 0.20 => Color::Orange,
     _ => Color::Red,
   }
 }
@@ -213,6 +217,15 @@ mod tests {
       (999_000_000_000_000, "999T"),
     ] {
       assert_eq!(millify(value), expected);
+    }
+  }
+
+  #[test]
+  fn test_millify_iec_supports_the_full_u64_range() {
+    for (value, expected) in
+      [(1_u64 << 40, "1 TiB"), (1_u64 << 50, "1 PiB"), (1_u64 << 60, "1 EiB"), (u64::MAX, "16 EiB")]
+    {
+      assert_eq!(millify_iec(value), expected);
     }
   }
 }

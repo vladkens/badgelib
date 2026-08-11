@@ -421,8 +421,11 @@ impl Badge {
   /// Configures a five-star rating badge with a color based on the score.
   pub fn for_stars(mut self, label: &str, value: f64, max_value: f64) -> Self {
     let stars = {
-      let scale = max_value / 5.0;
-      let score = value / scale;
+      let score = if value.is_finite() && max_value.is_finite() && max_value > 0.0 {
+        (value / max_value * 5.0).clamp(0.0, 5.0)
+      } else {
+        0.0
+      };
 
       // unfortunately not supported yet https://symbl.cc/en/2BE8/
       let full_part = "★".repeat(score as usize);
@@ -1010,6 +1013,22 @@ mod tests {
     // Test v0 version
     let rs = Badge::new().for_version("pkg", "v0.1.0");
     assert_eq!(rs.value_color, Some(Color::Orange));
+  }
+
+  #[test]
+  fn test_for_stars_normalizes_invalid_and_out_of_range_scores() {
+    for (value, max_value, expected, expected_color) in [
+      (4.5, 5.0, "★★★★½", Color::Green),
+      (10.0, 5.0, "★★★★★", Color::Green),
+      (-1.0, 5.0, "☆☆☆☆☆", Color::Red),
+      (0.0, 0.0, "☆☆☆☆☆", Color::Red),
+      (f64::NAN, 5.0, "☆☆☆☆☆", Color::Red),
+      (5.0, f64::INFINITY, "☆☆☆☆☆", Color::Red),
+    ] {
+      let badge = Badge::new().for_stars("rating", value, max_value);
+      assert_eq!(badge.value.as_deref(), Some(expected));
+      assert_eq!(badge.value_color, Some(expected_color));
+    }
   }
 
   #[test]
