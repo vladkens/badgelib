@@ -88,7 +88,7 @@ fn main() -> io::Result<()> {
 
   let examples = [
     Example {
-      filename: "value.svg",
+      filename: "grad-value.svg",
       alt: "Value gradient",
       section: Section::Gradients,
       badge: Badge::new()
@@ -98,7 +98,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "dual.svg",
+      filename: "grad-dual.svg",
       alt: "Dual gradient",
       section: Section::Gradients,
       badge: Badge::new()
@@ -109,7 +109,7 @@ fn main() -> io::Result<()> {
         .logo("github"),
     },
     Example {
-      filename: "mono.svg",
+      filename: "grad-mono.svg",
       alt: "Mono gradient",
       section: Section::Gradients,
       badge: Badge::new()
@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "custom-icon.svg",
+      filename: "icon-custom.svg",
       alt: "Custom icon",
       section: Section::CustomIcons,
       badge: Badge::new().value("custom icon").icon_svg(
@@ -128,7 +128,7 @@ fn main() -> io::Result<()> {
       ),
     },
     Example {
-      filename: "value-gradient-animated.svg",
+      filename: "anim-value.svg",
       alt: "Flow (value side)",
       section: Section::Animations,
       badge: Badge::new()
@@ -139,7 +139,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "label-gradient-animated.svg",
+      filename: "anim-label.svg",
       alt: "Flow (label side)",
       section: Section::Animations,
       badge: Badge::new()
@@ -151,7 +151,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "dual-gradient-animated.svg",
+      filename: "anim-dual.svg",
       alt: "Flow (both sides)",
       section: Section::Animations,
       badge: Badge::new()
@@ -163,7 +163,7 @@ fn main() -> io::Result<()> {
         .logo("github"),
     },
     Example {
-      filename: "shine-animated.svg",
+      filename: "anim-shine.svg",
       alt: "Shine",
       section: Section::Animations,
       badge: Badge::new()
@@ -174,7 +174,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "aurora-color.svg",
+      filename: "anim-aurora.svg",
       alt: "Aurora (solid background)",
       section: Section::Animations,
       badge: Badge::new()
@@ -185,7 +185,7 @@ fn main() -> io::Result<()> {
         .logo("rust"),
     },
     Example {
-      filename: "aurora-gradient.svg",
+      filename: "anim-aurora-grad.svg",
       alt: "Aurora (gradient background)",
       section: Section::Animations,
       badge: Badge::new()
@@ -194,37 +194,37 @@ fn main() -> io::Result<()> {
         .animation(Animation::Aurora),
     },
     Example {
-      filename: "version.svg",
+      filename: "builtin-version.svg",
       alt: "Version",
       section: Section::BuiltIns,
       badge: Badge::new().for_version("version", "1.2.0"),
     },
     Example {
-      filename: "license.svg",
+      filename: "builtin-license.svg",
       alt: "License",
       section: Section::BuiltIns,
       badge: Badge::new().for_license("MIT"),
     },
     Example {
-      filename: "downloads.svg",
+      filename: "builtin-downloads.svg",
       alt: "Downloads",
       section: Section::BuiltIns,
       badge: Badge::new().for_downloads(Period::Month, 1_234_567),
     },
     Example {
-      filename: "ci-status.svg",
+      filename: "builtin-ci.svg",
       alt: "CI status",
       section: Section::BuiltIns,
       badge: Badge::new().for_ci_status("build", true),
     },
     Example {
-      filename: "size.svg",
+      filename: "builtin-size.svg",
       alt: "Size",
       section: Section::BuiltIns,
       badge: Badge::new().for_size("size", 1_234_567),
     },
     Example {
-      filename: "rating.svg",
+      filename: "builtin-rating.svg",
       alt: "Rating",
       section: Section::BuiltIns,
       badge: Badge::new().for_rating("rating", 4.5, 5.0),

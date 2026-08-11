@@ -1,4 +1,4 @@
-.PHONY: prepare check test examples update publish
+.PHONY: prepare check test update examples
 
 prepare:
 	cargo +nightly fmt
@@ -13,10 +13,6 @@ check:
 test:
 	cargo test --all-features --locked
 
-examples:
-	rm -rf examples/*.svg
-	cargo run -r --example generate --all-features --locked
-
 update:
 	cargo upgrade -i
 	cargo run -r --example update-icons --locked
@@ -24,5 +20,6 @@ update:
 	cargo +nightly fmt
 	cargo check --all-features --locked
 
-publish:
-	cargo publish --locked
+examples:
+	rm -rf examples/*.svg
+	cargo run -r --example generate --all-features --locked

@@ -57,9 +57,9 @@ Use `label_gradient` for the left side of a two-part badge. Calling a solid-colo
 
 <!-- examples:gradients:start -->
 <p align="center">
-  <img src="examples/value.svg" alt="Value gradient">
-  <img src="examples/dual.svg" alt="Dual gradient">
-  <img src="examples/mono.svg" alt="Mono gradient">
+  <img src="examples/grad-value.svg" alt="Value gradient">
+  <img src="examples/grad-dual.svg" alt="Dual gradient">
+  <img src="examples/grad-mono.svg" alt="Mono gradient">
 </p>
 <!-- examples:gradients:end -->
 
@@ -80,7 +80,7 @@ let svg = Badge::new()
 
 <!-- examples:custom-icons:start -->
 <p align="center">
-  <img src="examples/custom-icon.svg" alt="Custom icon">
+  <img src="examples/icon-custom.svg" alt="Custom icon">
 </p>
 <!-- examples:custom-icons:end -->
 
@@ -114,12 +114,12 @@ let svg = Badge::new()
 
 <!-- examples:animations:start -->
 <p align="center">
-  <img src="examples/value-gradient-animated.svg" alt="Flow (value side)">
-  <img src="examples/label-gradient-animated.svg" alt="Flow (label side)">
-  <img src="examples/dual-gradient-animated.svg" alt="Flow (both sides)">
-  <img src="examples/shine-animated.svg" alt="Shine">
-  <img src="examples/aurora-color.svg" alt="Aurora (solid background)">
-  <img src="examples/aurora-gradient.svg" alt="Aurora (gradient background)">
+  <img src="examples/anim-value.svg" alt="Flow (value side)">
+  <img src="examples/anim-label.svg" alt="Flow (label side)">
+  <img src="examples/anim-dual.svg" alt="Flow (both sides)">
+  <img src="examples/anim-shine.svg" alt="Shine">
+  <img src="examples/anim-aurora.svg" alt="Aurora (solid background)">
+  <img src="examples/anim-aurora-grad.svg" alt="Aurora (gradient background)">
 </p>
 <!-- examples:animations:end -->
 
@@ -140,12 +140,12 @@ let rating = Badge::new().for_rating("rating", 4.5, 5.0);
 
 <!-- examples:built-ins:start -->
 <p align="center">
-  <img src="examples/version.svg" alt="Version">
-  <img src="examples/license.svg" alt="License">
-  <img src="examples/downloads.svg" alt="Downloads">
-  <img src="examples/ci-status.svg" alt="CI status">
-  <img src="examples/size.svg" alt="Size">
-  <img src="examples/rating.svg" alt="Rating">
+  <img src="examples/builtin-version.svg" alt="Version">
+  <img src="examples/builtin-license.svg" alt="License">
+  <img src="examples/builtin-downloads.svg" alt="Downloads">
+  <img src="examples/builtin-ci.svg" alt="CI status">
+  <img src="examples/builtin-size.svg" alt="Size">
+  <img src="examples/builtin-rating.svg" alt="Rating">
 </p>
 <!-- examples:built-ins:end -->
 

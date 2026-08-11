@@ -8,6 +8,7 @@ homepage = "https://badges.ws"
 repository = "https://github.com/vladkens/badgelib"
 documentation = "https://docs.rs/badgelib"
 readme = "readme.md"
+include = ["/src/**", "/scripts/**", "/examples/**", "/LICENSE", "/readme.md"]
 keywords = ["badge", "svg", "shields", "status", "readme"]
 categories = ["development-tools", "graphics", "value-formatting"]
 
