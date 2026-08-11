@@ -28,7 +28,6 @@ fn main() -> std::io::Result<()> {
     .label("build")
     .value("passing")
     .value_color(Color::Green)
-    .logo("rust")
     .radius(4)
     .to_svg();
 
@@ -36,7 +35,7 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-`Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, an icon from [Simple Icons](https://simpleicons.org), a custom icon color, and a border radius.
+`Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, a custom SVG icon, and a border radius.
 
 ## Gradients
 
@@ -49,7 +48,6 @@ let svg = Badge::new()
   .label("build")
   .value("passing")
   .value_gradient([Color::Red, Color::Orange, Color::Cyan])
-  .logo("rust")
   .to_svg();
 ```
 
@@ -63,9 +61,29 @@ Use `label_gradient` for the left side of a two-part badge. Calling a solid-colo
 </p>
 <!-- examples:gradients:end -->
 
+## Simple Icons
+
+The bundled [Simple Icons](https://simpleicons.org) collection is opt-in so applications that do not use it avoid its compile-time and binary-size cost:
+
+```sh
+cargo add badgelib --features simple-icons
+```
+
+With the feature enabled, `logo` and `logo_color` look up and customize a slug from the current collection or any historical release supported by `badgelib`. Without the feature, these builder methods are not available and incoming `logo` fields are ignored during deserialization:
+
+```rust
+use badgelib::{Badge, Color};
+
+let svg = Badge::new()
+  .value("built with Rust")
+  .logo("rust")
+  .logo_color(Color::White)
+  .to_svg();
+```
+
 ## Custom icons
 
-`logo` looks up a slug in [Simple Icons](https://simpleicons.org), including slugs removed or renamed in historical releases. Simple Icons only supports single-color icons; for anything else, pass raw SVG markup directly with `icon_svg`:
+Custom SVG icons remain available without features. Use `icon_svg` for project-specific artwork or icons that require multiple colors or shapes:
 
 ```rust
 use badgelib::Badge;
@@ -163,10 +181,10 @@ let json = badgelib::Badge::new()
 ```
 
 ```json
-{"label":"version","labelColor":null,"value":"v1.2.0","color":null,"logo":null,"logoColor":null,"radius":null,"style":"flat"}
+{"label":"version","labelColor":null,"value":"v1.2.0","color":null,"radius":null,"style":"flat"}
 ```
 
-`format` and `cache` also appear when the `axum` feature is enabled.
+`logo` and `logoColor` also appear when the `simple-icons` feature is enabled. `format` and `cache` appear when the `axum` feature is enabled.
 
 ## Axum integration
 

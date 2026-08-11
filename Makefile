@@ -7,10 +7,12 @@ prepare:
 
 check:
 	cargo +nightly fmt --check
+	cargo clippy --all-targets --locked -- -D warnings
 	cargo clippy --all-targets --all-features --locked -- -D warnings
 	cargo check --all-features --release --locked
 
 test:
+	cargo test --locked
 	cargo test --all-features --locked
 
 update:

@@ -18,6 +18,7 @@ all-features = true
 [[example]]
 name = "generate"
 path = "scripts/generate.rs"
+required-features = ["simple-icons"]
 
 [[example]]
 name = "update-icons"
@@ -30,13 +31,14 @@ path = "scripts/update-widths.rs"
 [features]
 default = []
 axum = ["dep:axum"]
+simple-icons = ["dep:phf"]
 
 [dependencies]
 axum = { version = ">=0.8.0", optional = true }
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 maud = { version = "0.27.0" }
-phf = { version = "0.14.0", features = ["macros"] }
+phf = { version = "0.14.0", features = ["macros"], optional = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 

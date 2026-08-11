@@ -5,6 +5,7 @@ use serde::de::IntoDeserializer;
 
 use super::_width::WIDTHS;
 use super::Color;
+#[cfg(feature = "simple-icons")]
 use crate::_icons::ICONS;
 
 // https://github.com/serde-rs/serde/issues/1425#issuecomment-462282398
@@ -73,6 +74,7 @@ pub(crate) fn to_icon_uri(svg: &str) -> String {
   format!("data:image/svg+xml;base64,{}", BASE64_STANDARD.encode(svg))
 }
 
+#[cfg(feature = "simple-icons")]
 pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
   let pretenders = [
     name.to_lowercase(),

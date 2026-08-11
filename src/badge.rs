@@ -5,9 +5,11 @@ use crate::Color;
 #[cfg(feature = "axum")]
 use crate::param::Format;
 use crate::param::{Animation, Period, Style};
+#[cfg(feature = "simple-icons")]
+use crate::utils::get_icon;
 use crate::utils::{
-  cacl_width, empty_string_as_none, get_icon, license_color, millify, millify_iec, rating_color,
-  text_color, to_icon_uri,
+  cacl_width, empty_string_as_none, license_color, millify, millify_iec, rating_color, text_color,
+  to_icon_uri,
 };
 
 #[cfg(feature = "axum")]
@@ -162,15 +164,16 @@ pub struct Badge {
   )]
   value_gradient: Option<Vec<Color>>,
 
+  #[cfg(feature = "simple-icons")]
   #[serde(rename = "logo", alias = "icon")]
   logo: Option<String>,
 
+  #[cfg(feature = "simple-icons")]
   #[serde(rename = "logoColor", alias = "iconColor")]
   #[serde(deserialize_with = "empty_string_as_none", default)]
   logo_color: Option<Color>,
 
-  /// Custom icon markup set via [`Badge::icon_svg`], bypassing the Simple
-  /// Icons lookup used by `logo`.
+  /// Custom icon markup set via [`Badge::icon_svg`].
   #[serde(skip)]
   icon_svg: Option<String>,
 
@@ -265,26 +268,31 @@ impl Badge {
   }
 
   /// Adds a logo by its [Simple Icons](https://simpleicons.org) slug.
+  /// Available with the `simple-icons` feature.
+  #[cfg(feature = "simple-icons")]
   pub fn logo(mut self, logo: &str) -> Self {
     self.logo = Some(logo.into());
     self.icon_svg = None;
     self
   }
 
-  /// Sets the logo color.
+  /// Sets the logo color, which is white by default.
+  /// Available with the `simple-icons` feature.
+  #[cfg(feature = "simple-icons")]
   pub fn logo_color(mut self, color: Color) -> Self {
     self.logo_color = Some(color);
     self
   }
 
-  /// Sets a custom icon from raw, already-colored SVG markup, bypassing the
-  /// [Simple Icons](https://simpleicons.org) lookup used by [`Badge::logo`].
-  /// Use this for icons that need multiple colors or shapes Simple Icons
-  /// doesn't have. The caller is responsible for the markup; it is emitted
-  /// as-is, so don't pass it untrusted input.
+  /// Sets a custom icon from raw, already-colored SVG markup. Use this for
+  /// icons that need multiple colors or shapes. The caller is responsible for
+  /// the markup; it is emitted as-is, so don't pass it untrusted input.
   pub fn icon_svg(mut self, svg: impl Into<String>) -> Self {
     self.icon_svg = Some(svg.into());
-    self.logo = None;
+    #[cfg(feature = "simple-icons")]
+    {
+      self.logo = None;
+    }
     self
   }
 
@@ -452,11 +460,10 @@ impl Badge {
     let flow_animated = self.animation == Some(Animation::Flow);
     let shine_animated = self.animation == Some(Animation::Shine);
     let aurora_animated = self.animation == Some(Animation::Aurora);
-    let icon = self
-      .icon_svg
-      .as_deref()
-      .map(to_icon_uri)
-      .or_else(|| get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color));
+    let icon = self.icon_svg.as_deref().map(to_icon_uri);
+    #[cfg(feature = "simple-icons")]
+    let icon =
+      icon.or_else(|| get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color));
 
     let ltext = self.label.clone().map(|x| x.trim().to_string()).unwrap_or_default();
     let rtext = self.value.clone().map(|x| x.trim().to_string()).unwrap_or_default();
@@ -895,15 +902,15 @@ mod tests {
   }
 
   #[test]
-  fn test_icon_svg_bypasses_logo_lookup() {
+  fn test_icon_svg_is_rendered() {
     let raw = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 2" fill="#facc15" /></svg>"##;
     let badge = Badge::new().value("custom").icon_svg(raw);
     let svg = badge.to_svg();
 
     assert!(svg.contains(&to_icon_uri(raw)));
-    assert_eq!(badge.logo, None);
   }
 
+  #[cfg(feature = "simple-icons")]
   #[test]
   fn test_icon_svg_and_logo_replace_each_other() {
     let solid = Badge::new().icon_svg("<svg></svg>").logo("rust");
@@ -913,6 +920,37 @@ mod tests {
     let custom = Badge::new().logo("rust").icon_svg("<svg></svg>");
     assert_eq!(custom.logo, None);
     assert_eq!(custom.icon_svg, Some("<svg></svg>".to_string()));
+  }
+
+  #[cfg(not(feature = "simple-icons"))]
+  #[test]
+  fn test_logo_fields_are_ignored_without_simple_icons() {
+    let badge: Badge =
+      serde_json::from_str(r#"{"value":"Rust","logo":"rust","logoColor":"red","unknown":"value"}"#)
+        .unwrap();
+    let json = badge.to_json();
+    let svg = badge.to_svg();
+
+    assert!(!json.contains(r#""logo""#));
+    assert!(!json.contains(r#""logoColor""#));
+    assert!(!svg.contains("<image"));
+  }
+
+  #[cfg(feature = "simple-icons")]
+  #[test]
+  fn test_logo_is_rendered_with_simple_icons() {
+    let default = Badge::new().value("Rust").logo("rust").to_svg();
+    let red = Badge::new().value("Rust").logo("rust").logo_color(Color::Red).to_svg();
+
+    assert!(default.contains(&get_icon("rust", &None).unwrap()));
+    assert!(red.contains(&get_icon("rust", &Some(Color::Red)).unwrap()));
+  }
+
+  #[cfg(feature = "simple-icons")]
+  #[test]
+  fn test_unknown_logo_is_omitted() {
+    let svg = Badge::new().value("Rust").logo("not-a-real-simple-icon").to_svg();
+    assert!(!svg.contains("<image"));
   }
 
   #[test]
