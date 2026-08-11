@@ -65,7 +65,7 @@ Use `label_gradient` for the left side of a two-part badge. Calling a solid-colo
 
 ## Custom icons
 
-`logo` looks up a slug in [Simple Icons](https://simpleicons.org), which only supports single-color icons. For anything else, pass raw SVG markup directly with `icon_svg`:
+`logo` looks up a slug in [Simple Icons](https://simpleicons.org), including slugs removed or renamed in historical releases. Simple Icons only supports single-color icons; for anything else, pass raw SVG markup directly with `icon_svg`:
 
 ```rust
 use badgelib::Badge;
@@ -188,14 +188,16 @@ With this feature enabled, `Badge` implements Axum's `IntoResponse` and returns 
 
 ## Development
 
-Clone the repository with its Simple Icons submodule, then run the existing checks:
+Clone the repository, then run the existing checks:
 
 ```sh
-git clone --recurse-submodules https://github.com/vladkens/badgelib.git
+git clone https://github.com/vladkens/badgelib.git
 cd badgelib
 make check
 make test
 ```
+
+`make update` refreshes dependencies and regenerates the embedded historical Simple Icons map and font-width table.
 
 ## Credits
 

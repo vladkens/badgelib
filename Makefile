@@ -1,12 +1,12 @@
 .PHONY: prepare check test examples update publish
 
 prepare:
-	cargo fmt
+	cargo +nightly fmt
 	cargo clippy --fix --all-targets --all-features --locked --allow-dirty --allow-staged -- -D warnings
 	cargo check --all-features --release --locked
 
 check:
-	cargo fmt --check
+	cargo +nightly fmt --check
 	cargo clippy --all-targets --all-features --locked -- -D warnings
 	cargo check --all-features --release --locked
 
@@ -15,13 +15,13 @@ test:
 
 examples:
 	rm -rf examples/*.svg
-	cargo run --example generate --all-features --locked
+	cargo run -r --example generate --all-features --locked
 
 update:
-	git submodule update --init --recursive
-	git submodule foreach 'git fetch --tags && git checkout $$(git describe --tags $$(git rev-list --tags --max-count=1))'
-	rm -f src/_icons.rs src/_width.rs
 	cargo upgrade -i
+	cargo run -r --example update-icons --locked
+	cargo run -r --example update-widths --locked
+	cargo +nightly fmt
 	cargo check --all-features --locked
 
 publish:
