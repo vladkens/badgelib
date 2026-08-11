@@ -2,15 +2,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::Color;
+#[cfg(feature = "simple-icons")]
+use crate::Error;
 #[cfg(feature = "axum")]
 use crate::param::Format;
 use crate::param::{Animation, Period, Style};
-#[cfg(feature = "simple-icons")]
-use crate::utils::get_icon;
 use crate::utils::{
   cacl_width, empty_string_as_none, license_color, millify, millify_iec, rating_color, text_color,
   to_icon_uri,
 };
+#[cfg(feature = "simple-icons")]
+use crate::utils::{get_icon, has_icon};
 
 #[cfg(feature = "axum")]
 fn default_cache() -> u32 {
@@ -274,6 +276,20 @@ impl Badge {
     self.logo = Some(logo.into());
     self.icon_svg = None;
     self
+  }
+
+  /// Adds a logo only if its Simple Icons slug exists.
+  /// Available with the `simple-icons` feature.
+  ///
+  /// # Errors
+  ///
+  /// Returns [`Error::UnknownLogo`] when the slug does not exist.
+  #[cfg(feature = "simple-icons")]
+  pub fn try_logo(self, logo: &str) -> crate::Result<Self> {
+    if !has_icon(logo) {
+      return Err(Error::UnknownLogo(logo.into()));
+    }
+    Ok(self.logo(logo))
   }
 
   /// Sets the logo color, which is white by default.
@@ -944,6 +960,18 @@ mod tests {
 
     assert!(default.contains(&get_icon("rust", &None).unwrap()));
     assert!(red.contains(&get_icon("rust", &Some(Color::Red)).unwrap()));
+  }
+
+  #[cfg(feature = "simple-icons")]
+  #[test]
+  fn test_try_logo_validates_slug() {
+    let badge = Badge::new().icon_svg("<svg></svg>").try_logo("rust").unwrap();
+    assert_eq!(badge.logo, Some("rust".to_string()));
+    assert_eq!(badge.icon_svg, None);
+
+    let error = Badge::new().try_logo("not-a-real-simple-icon").unwrap_err();
+    assert!(matches!(&error, Error::UnknownLogo(slug) if slug == "not-a-real-simple-icon"));
+    assert_eq!(error.to_string(), "unknown Simple Icons slug 'not-a-real-simple-icon'");
   }
 
   #[cfg(feature = "simple-icons")]

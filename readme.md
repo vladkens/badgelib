@@ -81,6 +81,14 @@ let svg = Badge::new()
   .to_svg();
 ```
 
+`logo` accepts unknown slugs and simply omits the image. Use `try_logo` when an unknown slug should be an error:
+
+```rust
+let badge = badgelib::Badge::new()
+  .try_logo("rust")
+  .expect("rust must be present in Simple Icons");
+```
+
 ## Custom icons
 
 Custom SVG icons remain available without features. Use `icon_svg` for project-specific artwork or icons that require multiple colors or shapes:

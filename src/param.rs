@@ -1,5 +1,21 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::Error;
+
+fn normalize_hex(value: &str) -> Option<String> {
+  let value = value.trim().trim_start_matches('#').to_lowercase();
+  if !matches!(value.len(), 3 | 6) || !value.chars().all(|character| character.is_ascii_hexdigit())
+  {
+    return None;
+  }
+
+  if value.len() == 3 {
+    Some(value.chars().flat_map(|character| [character, character]).collect())
+  } else {
+    Some(value)
+  }
+}
+
 /// Time period used by [`Badge::for_downloads`](crate::Badge::for_downloads).
 pub enum Period {
   /// Downloads per week.
@@ -55,7 +71,8 @@ pub enum Color {
   White,
   /// Cyan (`#06b6d4`).
   Cyan,
-  /// A custom three- or six-digit hexadecimal color.
+  /// A custom three- or six-digit hexadecimal color. Invalid values render as
+  /// black; use [`Color::try_from`] to validate untrusted input.
   Hex(String),
 }
 
@@ -74,13 +91,7 @@ impl Color {
       Color::Black => "18181b".into(),  // zinc-900
       Color::White => "f4f4f5".into(),  // zinc-100
       Color::Cyan => "06b6d4".into(),   // cyan-500
-      Color::Hex(hex) => {
-        if hex.len() == 3 {
-          hex.chars().map(|c| c.to_string().repeat(2)).collect()
-        } else {
-          hex.clone()
-        }
-      }
+      Color::Hex(hex) => normalize_hex(hex).unwrap_or_else(|| Color::Black.to_hex()),
     }
   }
 
@@ -91,7 +102,7 @@ impl Color {
 }
 
 impl<'a> TryFrom<&'a str> for Color {
-  type Error = String;
+  type Error = Error;
 
   fn try_from(value: &'a str) -> Result<Self, Self::Error> {
     // https://github.com/badges/shields/blob/master/badge-maker/lib/color.js
@@ -110,7 +121,7 @@ impl<'a> TryFrom<&'a str> for Color {
         if (x.len() == 3 || x.len() == 6) && x.chars().all(|c| c.is_ascii_hexdigit()) {
           Ok(Color::Hex(x.to_string()))
         } else {
-          Err(format!("invalid color '{}'", x))
+          Err(Error::InvalidColor(x.to_string()))
         }
       }
     }
@@ -156,6 +167,23 @@ impl<'de> Deserialize<'de> for Style {
   fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
     let s = String::deserialize(deserializer)?;
     Self::try_from(s.as_ref()).map_err(serde::de::Error::custom)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_invalid_color_uses_library_error() {
+    let error = Color::try_from("not-a-color").unwrap_err();
+    assert!(matches!(&error, Error::InvalidColor(color) if color == "not-a-color"));
+    assert_eq!(error.to_string(), "invalid color 'not-a-color'");
+  }
+
+  #[test]
+  fn test_invalid_direct_hex_falls_back_to_black() {
+    assert_eq!(Color::Hex("not-a-color".into()).to_hex(), Color::Black.to_hex());
   }
 }
 

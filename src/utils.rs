@@ -75,17 +75,30 @@ pub(crate) fn to_icon_uri(svg: &str) -> String {
 }
 
 #[cfg(feature = "simple-icons")]
-pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
-  let pretenders = [
-    name.to_lowercase(),
-    name.to_lowercase().replace('-', "").replace("!", "").replace("_", "").replace(" ", ""),
-    name.to_lowercase().replace('.', "dot").replace("+", "plus"),
+fn get_icon_path(name: &str) -> Option<&'static str> {
+  let name = name.to_lowercase();
+  let candidates = [
+    name.clone(),
+    name.replace('-', "").replace("!", "").replace("_", "").replace(" ", ""),
+    name.replace('.', "dot").replace("+", "plus"),
   ];
+
+  candidates.iter().find_map(|candidate| ICONS.get(candidate)).copied()
+}
+
+#[cfg(feature = "simple-icons")]
+pub(crate) fn has_icon(name: &str) -> bool {
+  get_icon_path(name).is_some()
+}
+
+#[cfg(feature = "simple-icons")]
+pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
+  let path = get_icon_path(name)?;
 
   let icon = format!(
     r#"<svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 24 24" fill="{}"><path d="{}" /></svg>"#,
     color.clone().map(|x| x.to_css()).unwrap_or("#fff".into()),
-    pretenders.iter().find_map(|n| ICONS.get(n))?
+    path
   );
 
   Some(to_icon_uri(&icon))

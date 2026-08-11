@@ -24,10 +24,12 @@
 pub(crate) mod _icons;
 pub(crate) mod _width;
 pub(crate) mod badge;
+pub(crate) mod error;
 pub(crate) mod param;
 pub(crate) mod utils;
 
 #[doc(inline)]
 pub use badge::Badge;
+pub use error::{Error, Result};
 #[doc(inline)]
 pub use param::{Animation, Color, Period};
