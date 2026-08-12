@@ -318,6 +318,16 @@ impl Badge {
     self
   }
 
+  /// Selects the badge's background and corner style.
+  ///
+  /// [`Style::Flat`](crate::Style::Flat) is used by default. An explicit
+  /// [`Badge::radius`] overrides the style's default corner radius without
+  /// changing its background treatment.
+  pub fn style(mut self, style: Style) -> Self {
+    self.style = style;
+    self
+  }
+
   // MARK: Predefined
 
   /// Configures a version badge and chooses a color based on the version.
@@ -564,7 +574,9 @@ impl Badge {
         rect x=(w-rw) y="0" width=(rw) height=(h)
           fill=(if self.value_gradient.is_some() { "url(#vg)" } else { &rb_color }) rx=(0) {}
       }
-      rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
+      @if self.style == Style::Flat {
+        rect x="0" y="0" width=(w) height=(h) fill="url(#s)" {}
+      }
       @if let Some((colors, opacity)) = &aurora {
         @let shapes = maud::html! {
           ellipse cx=(w*0.18) cy=(h*0.15) rx=(w*0.42) ry=(h*0.78)
@@ -759,6 +771,18 @@ impl axum::response::IntoResponse for Badge {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_style_controls_corners_and_highlight() {
+    let flat = Badge::new().value("passing").to_svg();
+    assert!(flat.contains(r#"id="s""#));
+    assert!(flat.contains(r#"fill="url(#s)""#));
+
+    let square = Badge::new().value("passing").style(Style::FlatSquare).to_svg();
+    assert!(!square.contains(r#"id="s""#));
+    assert!(!square.contains(r#"fill="url(#s)""#));
+    assert!(square.contains(r#"rx="0""#));
+  }
 
   #[test]
   fn test_value_gradient() {

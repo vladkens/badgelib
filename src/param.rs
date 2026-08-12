@@ -143,11 +143,14 @@ impl Serialize for Color {
 
 // MARK: Style
 
+/// Visual treatment applied to the badge background and corners.
 #[derive(Debug, Default, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Style {
+  /// Rounded corners with a subtle vertical highlight.
   #[default]
   Flat,
+  /// Square corners with solid backgrounds and no highlight.
   FlatSquare,
 }
 

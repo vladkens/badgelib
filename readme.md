@@ -37,6 +37,22 @@ fn main() -> std::io::Result<()> {
 
 `Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, a custom SVG icon, and a border radius.
 
+## Styles
+
+Badges use the rounded `Flat` style by default. Select `FlatSquare` for square corners and solid backgrounds without the subtle highlight used by `Flat`:
+
+```rust
+use badgelib::{Badge, Style};
+
+let svg = Badge::new()
+  .label("build")
+  .value("passing")
+  .style(Style::FlatSquare)
+  .to_svg();
+```
+
+Use `radius` when you only want to override the corner radius. A custom radius does not change the selected style's background treatment.
+
 ## Gradients
 
 Pass two or more colors to distribute them evenly from left to right:

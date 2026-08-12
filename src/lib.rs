@@ -32,4 +32,4 @@ pub(crate) mod utils;
 pub use badge::Badge;
 pub use error::{Error, Result};
 #[doc(inline)]
-pub use param::{Animation, Color, Period};
+pub use param::{Animation, Color, Period, Style};
