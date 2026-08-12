@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - run: rustup update --no-self-update stable && rustup default stable
       - run: rustup toolchain install nightly --profile minimal --component rustfmt
