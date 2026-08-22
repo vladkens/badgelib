@@ -153,6 +153,8 @@ pub enum Style {
   Flat,
   /// Square corners with solid backgrounds and no highlight.
   FlatSquare,
+  /// Large square badge with uppercase text and a bold value.
+  ForTheBadge,
 }
 
 impl<'a> TryFrom<&'a str> for Style {
@@ -162,6 +164,7 @@ impl<'a> TryFrom<&'a str> for Style {
     match value.to_lowercase().replace("-", "").trim() {
       "flat" => Ok(Style::Flat),
       "flatsquare" => Ok(Style::FlatSquare),
+      "forthebadge" => Ok(Style::ForTheBadge),
       x => Err(format!("unknown badge style '{}'", x)),
     }
   }

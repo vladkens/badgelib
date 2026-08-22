@@ -68,7 +68,7 @@ let svg = Badge::new()
 
 ## Styles
 
-Badges use the rounded `Flat` style by default. Select `FlatSquare` for square corners and solid backgrounds without the subtle highlight used by `Flat`:
+Badges use the rounded `Flat` style by default. Select `FlatSquare` for square corners and solid backgrounds without the subtle highlight used by `Flat`. Use `ForTheBadge` for a larger badge with uppercase text and a bold value:
 
 ```rust
 use badgelib::{Badge, Style};
@@ -76,11 +76,19 @@ use badgelib::{Badge, Style};
 let svg = Badge::new()
   .label("build")
   .value("passing")
-  .style(Style::FlatSquare)
+  .style(Style::ForTheBadge)
   .to_svg();
 ```
 
 Use `radius` when you only want to override the corner radius. A custom radius does not change the selected style's background treatment.
+
+<!-- examples:styles:start -->
+<p align="center">
+  <img src="examples/style-flat.svg" alt="Flat" align="middle">
+  <img src="examples/style-flat-square.svg" alt="Flat square" align="middle">
+  <img src="examples/style-for-the-badge.svg" alt="For the badge" align="middle">
+</p>
+<!-- examples:styles:end -->
 
 ## Gradients
 
@@ -105,6 +113,14 @@ Use `label_gradient` for the left side of a two-part badge. Calling a solid-colo
   <img src="examples/grad-mono.svg" alt="Mono gradient">
 </p>
 <!-- examples:gradients:end -->
+
+<!-- examples:gradients-for-the-badge:start -->
+<p align="center">
+  <img src="examples/grad-value-for-the-badge.svg" alt="Value gradient (For the badge)">
+  <img src="examples/grad-dual-for-the-badge.svg" alt="Dual gradient (For the badge)">
+  <img src="examples/grad-mono-for-the-badge.svg" alt="Mono gradient (For the badge)">
+</p>
+<!-- examples:gradients-for-the-badge:end -->
 
 ## Simple Icons
 
@@ -209,6 +225,14 @@ let svg = Badge::new()
 </p>
 <!-- examples:animations:end -->
 
+<!-- examples:animations-for-the-badge:start -->
+<p align="center">
+  <img src="examples/anim-dual-for-the-badge.svg" alt="Flow (both sides) (For the badge)">
+  <img src="examples/anim-shine-for-the-badge.svg" alt="Shine (For the badge)">
+  <img src="examples/anim-aurora-grad-for-the-badge.svg" alt="Aurora (gradient background) (For the badge)">
+</p>
+<!-- examples:animations-for-the-badge:end -->
+
 ## Built-in badge types
 
 The library includes helpers for common badge values and their default formatting:
@@ -234,6 +258,7 @@ let rating = Badge::new().for_rating("rating", 4.5, 5.0);
   <img src="examples/builtin-rating.svg" alt="Rating">
 </p>
 <!-- examples:built-ins:end -->
+
 
 Available helpers cover versions, licenses, downloads, CI status, counts, sizes, ratings, star ratings, and relative durations. You can override their labels and colors with the regular builder methods.
 

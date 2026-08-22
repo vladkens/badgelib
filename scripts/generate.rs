@@ -1,35 +1,44 @@
 use std::path::Path;
 use std::{fs, io};
 
-use badgelib::{Animation, Badge, Color, Period};
+use badgelib::{Animation, Badge, Color, Period, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
   Colors,
+  Styles,
   Gradients,
+  ForTheBadgeGradients,
   SimpleIcons,
   CustomIcons,
   Animations,
+  ForTheBadgeAnimations,
   BuiltIns,
 }
 
 impl Section {
-  const ALL: [Self; 6] = [
+  const ALL: [Self; 9] = [
     Self::Colors,
+    Self::Styles,
     Self::Gradients,
+    Self::ForTheBadgeGradients,
     Self::SimpleIcons,
     Self::CustomIcons,
     Self::Animations,
+    Self::ForTheBadgeAnimations,
     Self::BuiltIns,
   ];
 
   fn name(self) -> &'static str {
     match self {
       Self::Colors => "colors",
+      Self::Styles => "styles",
       Self::Gradients => "gradients",
+      Self::ForTheBadgeGradients => "gradients-for-the-badge",
       Self::SimpleIcons => "simple-icons",
       Self::CustomIcons => "custom-icons",
       Self::Animations => "animations",
+      Self::ForTheBadgeAnimations => "animations-for-the-badge",
       Self::BuiltIns => "built-ins",
     }
   }
@@ -42,12 +51,30 @@ struct Example {
   badge: Badge,
 }
 
+impl Example {
+  fn for_the_badge_section(&self) -> Option<Section> {
+    let animation =
+      matches!(self.filename, "anim-dual.svg" | "anim-shine.svg" | "anim-aurora-grad.svg");
+
+    match self.section {
+      Section::Gradients => Some(Section::ForTheBadgeGradients),
+      Section::Animations if animation => Some(Section::ForTheBadgeAnimations),
+      _ => None,
+    }
+  }
+}
+
 fn hex(value: &str) -> Color {
   Color::try_from(value).expect("example colors must be valid")
 }
 
 fn simple_icon(name: &str, color: &str) -> Badge {
   Badge::new().value(name).value_color(hex(color)).try_logo(name).expect("example logo must exist")
+}
+
+fn for_the_badge_filename(filename: &str) -> String {
+  let stem = filename.strip_suffix(".svg").expect("example filename must end with .svg");
+  format!("{stem}-for-the-badge.svg")
 }
 
 fn update_readme(root: &Path, examples: &[Example]) -> io::Result<()> {
@@ -70,9 +97,16 @@ fn update_readme(root: &Path, examples: &[Example]) -> io::Result<()> {
 
     let images = examples
       .iter()
-      .filter(|example| example.section == section)
-      .map(|example| {
-        format!("  <img src=\"examples/{}\" alt=\"{}\">", example.filename, example.alt)
+      .filter_map(|example| {
+        let (filename, alt) = if example.section == section {
+          (example.filename.into(), example.alt.into())
+        } else if example.for_the_badge_section() == Some(section) {
+          (for_the_badge_filename(example.filename), format!("{} (For the badge)", example.alt))
+        } else {
+          return None;
+        };
+        let align = if section == Section::Styles { " align=\"middle\"" } else { "" };
+        Some(format!("  <img src=\"examples/{filename}\" alt=\"{alt}\"{align}>"))
       })
       .collect::<Vec<_>>();
     if images.is_empty() {
@@ -161,6 +195,32 @@ fn main() -> io::Result<()> {
       alt: "White",
       section: Section::Colors,
       badge: Badge::new().label("color").value("white").value_color(Color::White),
+    },
+    Example {
+      filename: "style-flat.svg",
+      alt: "Flat",
+      section: Section::Styles,
+      badge: Badge::new().label("build").value("passing").value_color(Color::Green),
+    },
+    Example {
+      filename: "style-flat-square.svg",
+      alt: "Flat square",
+      section: Section::Styles,
+      badge: Badge::new()
+        .label("build")
+        .value("passing")
+        .value_color(Color::Green)
+        .style(Style::FlatSquare),
+    },
+    Example {
+      filename: "style-for-the-badge.svg",
+      alt: "For the badge",
+      section: Section::Styles,
+      badge: Badge::new()
+        .label("build")
+        .value("passing")
+        .value_color(Color::Green)
+        .style(Style::ForTheBadge),
     },
     Example {
       filename: "grad-value.svg",
@@ -358,6 +418,14 @@ fn main() -> io::Result<()> {
     let path = output_dir.join(example.filename);
     fs::write(&path, example.badge.to_svg())?;
     println!("generated {}", path.display());
+
+    if example.for_the_badge_section().is_some() {
+      let filename = for_the_badge_filename(example.filename);
+      let path = output_dir.join(filename);
+      let svg = example.badge.clone().style(Style::ForTheBadge).to_svg();
+      fs::write(&path, svg)?;
+      println!("generated {}", path.display());
+    }
   }
 
   update_readme(root, &examples)?;
