@@ -108,7 +108,7 @@ impl<'a> TryFrom<&'a str> for Color {
     // https://github.com/badges/shields/blob/master/badge-maker/lib/color.js
     match value.to_lowercase().trim().replace("#", "").as_ref() {
       "blue" => Ok(Color::Blue),
-      "green" => Ok(Color::Green),
+      "green" | "brightgreen" | "bright-green" => Ok(Color::Green),
       "lime" | "yellowgreen" => Ok(Color::Lime),
       "yellow" => Ok(Color::Yellow),
       "orange" => Ok(Color::Orange),
@@ -187,6 +187,12 @@ mod tests {
   #[test]
   fn test_invalid_direct_hex_falls_back_to_black() {
     assert_eq!(Color::Hex("not-a-color".into()).to_hex(), Color::Black.to_hex());
+  }
+
+  #[test]
+  fn test_bright_green_aliases() {
+    assert_eq!(Color::try_from("brightgreen").unwrap(), Color::Green);
+    assert_eq!(Color::try_from("bright-green").unwrap(), Color::Green);
   }
 }
 
