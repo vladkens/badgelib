@@ -6,17 +6,20 @@ use badgelib::{Animation, Badge, Color, Period};
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
   Gradients,
+  SimpleIcons,
   CustomIcons,
   Animations,
   BuiltIns,
 }
 
 impl Section {
-  const ALL: [Self; 4] = [Self::Gradients, Self::CustomIcons, Self::Animations, Self::BuiltIns];
+  const ALL: [Self; 5] =
+    [Self::Gradients, Self::SimpleIcons, Self::CustomIcons, Self::Animations, Self::BuiltIns];
 
   fn name(self) -> &'static str {
     match self {
       Self::Gradients => "gradients",
+      Self::SimpleIcons => "simple-icons",
       Self::CustomIcons => "custom-icons",
       Self::Animations => "animations",
       Self::BuiltIns => "built-ins",
@@ -33,6 +36,10 @@ struct Example {
 
 fn hex(value: &str) -> Color {
   Color::try_from(value).expect("example colors must be valid")
+}
+
+fn simple_icon(name: &str, color: &str) -> Badge {
+  Badge::new().value(name).value_color(hex(color)).try_logo(name).expect("example logo must exist")
 }
 
 fn update_readme(root: &Path, examples: &[Example]) -> io::Result<()> {
@@ -116,6 +123,54 @@ fn main() -> io::Result<()> {
         .value("gradient badge")
         .value_gradient([hex("f43f5e"), hex("a855f7"), hex("06b6d4")])
         .logo("rust"),
+    },
+    Example {
+      filename: "icon-rust.svg",
+      alt: "Rust",
+      section: Section::SimpleIcons,
+      badge: simple_icon("rust", "9a3412"),
+    },
+    Example {
+      filename: "icon-python.svg",
+      alt: "Python",
+      section: Section::SimpleIcons,
+      badge: simple_icon("python", "306998"),
+    },
+    Example {
+      filename: "icon-typescript.svg",
+      alt: "TypeScript",
+      section: Section::SimpleIcons,
+      badge: simple_icon("typescript", "235a97"),
+    },
+    Example {
+      filename: "icon-go.svg",
+      alt: "Go",
+      section: Section::SimpleIcons,
+      badge: simple_icon("go", "00758d"),
+    },
+    Example {
+      filename: "icon-docker.svg",
+      alt: "Docker",
+      section: Section::SimpleIcons,
+      badge: simple_icon("docker", "1d63c4"),
+    },
+    Example {
+      filename: "icon-kubernetes.svg",
+      alt: "Kubernetes",
+      section: Section::SimpleIcons,
+      badge: simple_icon("kubernetes", "3265c7"),
+    },
+    Example {
+      filename: "icon-postgresql.svg",
+      alt: "PostgreSQL",
+      section: Section::SimpleIcons,
+      badge: simple_icon("postgresql", "336791"),
+    },
+    Example {
+      filename: "icon-redis.svg",
+      alt: "Redis",
+      section: Section::SimpleIcons,
+      badge: simple_icon("redis", "a82f24"),
     },
     Example {
       filename: "icon-custom.svg",

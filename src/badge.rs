@@ -121,6 +121,35 @@ fn gradient_text_color(colors: &[Color]) -> Color {
   }
 }
 
+#[cfg(feature = "simple-icons")]
+mod logo {
+  use super::*;
+
+  pub(super) fn exists(badge: &Badge) -> bool {
+    badge.logo.as_deref().is_some_and(has_icon)
+  }
+
+  pub(super) fn render(badge: &Badge, default_color: &Color) -> Option<String> {
+    get_icon(
+      badge.logo.as_deref().unwrap_or_default(),
+      badge.logo_color.as_ref().unwrap_or(default_color),
+    )
+  }
+}
+
+#[cfg(not(feature = "simple-icons"))]
+mod logo {
+  use super::*;
+
+  pub(super) fn exists(_: &Badge) -> bool {
+    false
+  }
+
+  pub(super) fn render(_: &Badge, _: &Color) -> Option<String> {
+    None
+  }
+}
+
 fn deserialize_gradient<'de, D>(deserializer: D) -> Result<Option<Vec<Color>>, D::Error>
 where
   D: serde::Deserializer<'de>,
@@ -292,7 +321,7 @@ impl Badge {
     Ok(self.logo(logo))
   }
 
-  /// Sets the logo color, which is white by default.
+  /// Sets the logo color. By default, the logo matches the text in its segment.
   /// Available with the `simple-icons` feature.
   #[cfg(feature = "simple-icons")]
   pub fn logo_color(mut self, color: Color) -> Self {
@@ -489,14 +518,12 @@ impl Badge {
     let flow_animated = self.animation == Some(Animation::Flow);
     let shine_animated = self.animation == Some(Animation::Shine);
     let aurora_animated = self.animation == Some(Animation::Aurora);
-    let icon = self.icon_svg.as_deref().map(to_icon_uri);
-    #[cfg(feature = "simple-icons")]
-    let icon =
-      icon.or_else(|| get_icon(self.logo.as_deref().unwrap_or_default(), &self.logo_color));
+    let custom_icon = self.icon_svg.as_deref().map(to_icon_uri);
+    let has_icon = custom_icon.is_some() || logo::exists(self);
 
     let ltext = self.label.clone().map(|x| x.trim().to_string()).unwrap_or_default();
     let rtext = self.value.clone().map(|x| x.trim().to_string()).unwrap_or_default();
-    let (has_text, has_icon) = (!ltext.is_empty(), icon.is_some());
+    let has_text = !ltext.is_empty();
 
     #[allow(clippy::nonminimal_bool)]
     let mono = (!has_text && !has_icon)
@@ -509,7 +536,7 @@ impl Badge {
     let pad = fz * 0.5; // left / right padding
     let gap = pad / 1.5; // gap between left and right text
 
-    let iw = if icon.is_some() { fz * 1.2 } else { 0.0 };
+    let iw = if has_icon { fz * 1.2 } else { 0.0 };
     #[allow(unused_assignments)]
     let (mut lx, mut lw, mut rx, mut rw) = (0.0, 0.0, 0.0, 0.0);
 
@@ -545,14 +572,16 @@ impl Badge {
       .label_gradient
       .as_deref()
       .map(gradient_text_color)
-      .unwrap_or_else(|| text_color(&lb_color))
-      .to_css();
+      .unwrap_or_else(|| text_color(&lb_color));
     let rt_color = self
       .value_gradient
       .as_deref()
       .map(gradient_text_color)
-      .unwrap_or_else(|| text_color(&rb_color))
-      .to_css();
+      .unwrap_or_else(|| text_color(&rb_color));
+    let default_icon_color = if mono { &rt_color } else { &lt_color };
+    let icon = custom_icon.or_else(|| logo::render(self, default_icon_color));
+    let lt_color = lt_color.to_css();
+    let rt_color = rt_color.to_css();
     let lb_color = lb_color.to_css();
     let rb_color = rb_color.to_css();
 
@@ -985,8 +1014,25 @@ mod tests {
     let default = Badge::new().value("Rust").logo("rust").to_svg();
     let red = Badge::new().value("Rust").logo("rust").logo_color(Color::Red).to_svg();
 
-    assert!(default.contains(&get_icon("rust", &None).unwrap()));
-    assert!(red.contains(&get_icon("rust", &Some(Color::Red)).unwrap()));
+    assert!(default.contains(&get_icon("rust", &Color::White).unwrap()));
+    assert!(red.contains(&get_icon("rust", &Color::Red).unwrap()));
+  }
+
+  #[cfg(feature = "simple-icons")]
+  #[test]
+  fn test_default_logo_matches_its_text_color() {
+    let mono = Badge::new().value("Rust").value_color(Color::White).logo("rust").to_svg();
+    assert!(mono.contains(&get_icon("rust", &Color::Black).unwrap()));
+    assert!(mono.contains(r##"fill="#18181b""##));
+
+    let split = Badge::new()
+      .label("language")
+      .label_color(Color::White)
+      .value("Rust")
+      .value_color(Color::Red)
+      .logo("rust")
+      .to_svg();
+    assert!(split.contains(&get_icon("rust", &Color::Black).unwrap()));
   }
 
   #[cfg(feature = "simple-icons")]

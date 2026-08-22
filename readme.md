@@ -87,6 +87,8 @@ cargo add badgelib --features simple-icons
 
 With the feature enabled, `logo` and `logo_color` look up and customize a slug from the current collection or any historical release supported by `badgelib`. Without the feature, these builder methods are not available and incoming `logo` fields are ignored during deserialization:
 
+Standard Simple Icons follow the text color unless `logo_color` is set explicitly.
+
 ```rust
 use badgelib::{Badge, Color};
 
@@ -104,6 +106,19 @@ let badge = badgelib::Badge::new()
   .try_logo("rust")
   .expect("rust must be present in Simple Icons");
 ```
+
+<!-- examples:simple-icons:start -->
+<p align="center">
+  <img src="examples/icon-rust.svg" alt="Rust">
+  <img src="examples/icon-python.svg" alt="Python">
+  <img src="examples/icon-typescript.svg" alt="TypeScript">
+  <img src="examples/icon-go.svg" alt="Go">
+  <img src="examples/icon-docker.svg" alt="Docker">
+  <img src="examples/icon-kubernetes.svg" alt="Kubernetes">
+  <img src="examples/icon-postgresql.svg" alt="PostgreSQL">
+  <img src="examples/icon-redis.svg" alt="Redis">
+</p>
+<!-- examples:simple-icons:end -->
 
 ## Custom icons
 

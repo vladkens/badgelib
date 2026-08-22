@@ -92,12 +92,12 @@ pub(crate) fn has_icon(name: &str) -> bool {
 }
 
 #[cfg(feature = "simple-icons")]
-pub(crate) fn get_icon(name: &str, color: &Option<Color>) -> Option<String> {
+pub(crate) fn get_icon(name: &str, color: &Color) -> Option<String> {
   let path = get_icon_path(name)?;
 
   let icon = format!(
     r#"<svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 24 24" fill="{}"><path d="{}" /></svg>"#,
-    color.clone().map(|x| x.to_css()).unwrap_or("#fff".into()),
+    color.to_css(),
     path
   );
 
