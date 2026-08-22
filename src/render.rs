@@ -637,3 +637,35 @@ fn render_for_the_badge_svg(badge: &Badge) -> String {
 
   svg.into_string()
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_for_the_badge_layout() {
+    let svg = Badge::new().label("build").value("passing").style(Style::ForTheBadge).to_svg();
+
+    assert!(svg.contains(r#"height="28""#));
+    assert!(svg.contains(">BUILD</text>"));
+    assert!(svg.contains(r#"font-weight="bold">PASSING</text>"#));
+    assert!(svg.contains(r#"rx="0""#));
+    assert!(!svg.contains(r#"id="s""#));
+  }
+
+  #[test]
+  fn test_for_the_badge_features() {
+    let svg = Badge::new()
+      .label("build")
+      .value("flowing")
+      .value_gradient([Color::Blue, Color::Cyan])
+      .icon_svg(r#"<svg xmlns="http://www.w3.org/2000/svg"></svg>"#)
+      .animation(Animation::Flow)
+      .style(Style::ForTheBadge)
+      .to_svg();
+
+    assert!(svg.contains(r#"id="vg""#));
+    assert!(svg.contains("<animateTransform"));
+    assert!(svg.contains("<image "));
+  }
+}

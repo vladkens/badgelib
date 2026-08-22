@@ -1,3 +1,32 @@
+## v0.5.0 – 2026-08-22
+
+### Breaking Changes
+
+- Made named Simple Icons opt-in through the `simple-icons` feature; applications using named logos must now enable it
+- Changed `Color::try_from` to return the public `Error` type instead of a string
+
+### Features
+
+- Added the `ForTheBadge` style with larger uppercase text and bold values
+- Added `Badge::try_logo` for rejecting unknown Simple Icons slugs
+
+### Fixes
+
+- Exposed `Style` publicly and fixed `FlatSquare` badges to use square corners without a background highlight
+- Fixed `brightgreen` and `bright-green` color aliases
+- Fixed size badges for PiB, EiB, and the full `u64` range
+- Fixed rating and star badges for invalid or out-of-range scores
+- Fixed default Simple Icons colors to follow the badge text color
+
+### Improvements
+
+- Improved contrast for the built-in color palette
+- Improved custom hexadecimal color handling with normalization and a safe fallback for invalid direct values
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.4.0...v0.5.0
+
+---
+
 ## v0.4.0 – 2026-08-11
 
 ### Features

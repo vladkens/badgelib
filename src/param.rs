@@ -216,6 +216,11 @@ mod tests {
     assert_eq!(Color::try_from("brightgreen").unwrap(), Color::Green);
     assert_eq!(Color::try_from("bright-green").unwrap(), Color::Green);
   }
+
+  #[test]
+  fn test_for_the_badge_style() {
+    assert_eq!(Style::try_from("for-the-badge").unwrap(), Style::ForTheBadge);
+  }
 }
 
 // MARK: Format
