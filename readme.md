@@ -37,6 +37,35 @@ fn main() -> std::io::Result<()> {
 
 `Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, a custom SVG icon, and a border radius.
 
+## Colors
+
+Choose a named color or pass a validated three- or six-digit hexadecimal value. The built-in colors retain the original palette's hues with enough depth for a consistent white foreground; `White` uses dark text instead.
+
+```rust
+use badgelib::{Badge, Color};
+
+let svg = Badge::new()
+  .label("color")
+  .value("green")
+  .value_color(Color::Green)
+  .to_svg();
+```
+
+<!-- examples:colors:start -->
+<p align="center">
+  <img src="examples/color-green.svg" alt="Green">
+  <img src="examples/color-lime.svg" alt="Lime">
+  <img src="examples/color-yellow.svg" alt="Yellow">
+  <img src="examples/color-orange.svg" alt="Orange">
+  <img src="examples/color-red.svg" alt="Red">
+  <img src="examples/color-blue.svg" alt="Blue">
+  <img src="examples/color-cyan.svg" alt="Cyan">
+  <img src="examples/color-gray.svg" alt="Gray">
+  <img src="examples/color-black.svg" alt="Black">
+  <img src="examples/color-white.svg" alt="White">
+</p>
+<!-- examples:colors:end -->
+
 ## Styles
 
 Badges use the rounded `Flat` style by default. Select `FlatSquare` for square corners and solid backgrounds without the subtle highlight used by `Flat`:

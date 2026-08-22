@@ -53,13 +53,13 @@ pub enum Color {
   /// Blue (`#3b82f6`), the default value color.
   #[default]
   Blue,
-  /// Green (`#22c55e`).
+  /// Green (`#16a34a`).
   Green,
-  /// Lime (`#84cc16`).
+  /// Lime (`#65a30d`).
   Lime,
-  /// Yellow (`#eab308`).
+  /// Yellow (`#ca8a04`).
   Yellow,
-  /// Orange (`#f97316`).
+  /// Orange (`#ea580c`).
   Orange,
   /// Red (`#ef4444`).
   Red,
@@ -69,7 +69,7 @@ pub enum Color {
   Black,
   /// White (`#f4f4f5`).
   White,
-  /// Cyan (`#06b6d4`).
+  /// Cyan (`#0891b2`).
   Cyan,
   /// A custom three- or six-digit hexadecimal color. Invalid values render as
   /// black; use [`Color::try_from`] to validate untrusted input.
@@ -79,18 +79,19 @@ pub enum Color {
 impl Color {
   /// Returns the hexadecimal value without a leading `#`.
   pub fn to_hex(&self) -> String {
+    // Exact Tailwind CSS v3 values; shades are selected individually.
     // https://tailwindcss.com/docs/colors
     match self {
       Color::Blue => "3b82f6".into(),   // blue-500
-      Color::Green => "22c55e".into(),  // green-500
-      Color::Lime => "84cc16".into(),   // lime-500
-      Color::Yellow => "eab308".into(), // yellow-500
-      Color::Orange => "f97316".into(), // orange-500
+      Color::Green => "16a34a".into(),  // green-600
+      Color::Lime => "65a30d".into(),   // lime-600
+      Color::Yellow => "ca8a04".into(), // yellow-600
+      Color::Orange => "ea580c".into(), // orange-600
       Color::Red => "ef4444".into(),    // red-500
       Color::Gray => "71717a".into(),   // zinc-500
       Color::Black => "18181b".into(),  // zinc-900
       Color::White => "f4f4f5".into(),  // zinc-100
-      Color::Cyan => "06b6d4".into(),   // cyan-500
+      Color::Cyan => "0891b2".into(),   // cyan-600
       Color::Hex(hex) => normalize_hex(hex).unwrap_or_else(|| Color::Black.to_hex()),
     }
   }
@@ -187,6 +188,24 @@ mod tests {
   #[test]
   fn test_invalid_direct_hex_falls_back_to_black() {
     assert_eq!(Color::Hex("not-a-color".into()).to_hex(), Color::Black.to_hex());
+  }
+
+  #[test]
+  fn test_builtin_palette() {
+    for (color, expected) in [
+      (Color::Blue, "3b82f6"),
+      (Color::Green, "16a34a"),
+      (Color::Lime, "65a30d"),
+      (Color::Yellow, "ca8a04"),
+      (Color::Orange, "ea580c"),
+      (Color::Red, "ef4444"),
+      (Color::Gray, "71717a"),
+      (Color::Black, "18181b"),
+      (Color::White, "f4f4f5"),
+      (Color::Cyan, "0891b2"),
+    ] {
+      assert_eq!(color.to_hex(), expected);
+    }
   }
 
   #[test]

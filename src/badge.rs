@@ -824,11 +824,11 @@ mod tests {
 
     assert!(svg.contains(r#"id="vg""#));
     assert!(svg.contains(r##"offset="0.000%" stop-color="#ef4444""##));
-    assert!(svg.contains(r##"offset="50.000%" stop-color="#f97316""##));
-    assert!(svg.contains(r##"offset="100.000%" stop-color="#06b6d4""##));
+    assert!(svg.contains(r##"offset="50.000%" stop-color="#ea580c""##));
+    assert!(svg.contains(r##"offset="100.000%" stop-color="#0891b2""##));
     assert!(svg.contains(r#"fill="url(#vg)""#));
     assert_eq!(badge.value_color, None);
-    assert!(badge.to_json().contains(r#""gradient":["ef4444","f97316","06b6d4"]"#));
+    assert!(badge.to_json().contains(r#""gradient":["ef4444","ea580c","0891b2"]"#));
   }
 
   #[test]

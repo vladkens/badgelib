@@ -5,6 +5,7 @@ use badgelib::{Animation, Badge, Color, Period};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
+  Colors,
   Gradients,
   SimpleIcons,
   CustomIcons,
@@ -13,11 +14,18 @@ enum Section {
 }
 
 impl Section {
-  const ALL: [Self; 5] =
-    [Self::Gradients, Self::SimpleIcons, Self::CustomIcons, Self::Animations, Self::BuiltIns];
+  const ALL: [Self; 6] = [
+    Self::Colors,
+    Self::Gradients,
+    Self::SimpleIcons,
+    Self::CustomIcons,
+    Self::Animations,
+    Self::BuiltIns,
+  ];
 
   fn name(self) -> &'static str {
     match self {
+      Self::Colors => "colors",
       Self::Gradients => "gradients",
       Self::SimpleIcons => "simple-icons",
       Self::CustomIcons => "custom-icons",
@@ -94,6 +102,66 @@ fn main() -> io::Result<()> {
   }
 
   let examples = [
+    Example {
+      filename: "color-green.svg",
+      alt: "Green",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("green").value_color(Color::Green),
+    },
+    Example {
+      filename: "color-lime.svg",
+      alt: "Lime",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("lime").value_color(Color::Lime),
+    },
+    Example {
+      filename: "color-yellow.svg",
+      alt: "Yellow",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("yellow").value_color(Color::Yellow),
+    },
+    Example {
+      filename: "color-orange.svg",
+      alt: "Orange",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("orange").value_color(Color::Orange),
+    },
+    Example {
+      filename: "color-red.svg",
+      alt: "Red",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("red").value_color(Color::Red),
+    },
+    Example {
+      filename: "color-blue.svg",
+      alt: "Blue",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("blue").value_color(Color::Blue),
+    },
+    Example {
+      filename: "color-cyan.svg",
+      alt: "Cyan",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("cyan").value_color(Color::Cyan),
+    },
+    Example {
+      filename: "color-gray.svg",
+      alt: "Gray",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("gray").value_color(Color::Gray),
+    },
+    Example {
+      filename: "color-black.svg",
+      alt: "Black",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("black").value_color(Color::Black),
+    },
+    Example {
+      filename: "color-white.svg",
+      alt: "White",
+      section: Section::Colors,
+      badge: Badge::new().label("color").value("white").value_color(Color::White),
+    },
     Example {
       filename: "grad-value.svg",
       alt: "Value gradient",
