@@ -407,21 +407,17 @@ impl Badge {
 }
 
 #[cfg(feature = "axum")]
-impl axum::response::IntoResponse for Badge {
-  fn into_response(self) -> axum::response::Response {
+impl axum_core::response::IntoResponse for Badge {
+  fn into_response(self) -> axum_core::response::Response {
     let cc = format!("public,max-age={0},s-maxage=300,stale-while-revalidate={0}", self.cache);
     let (ct, content) = match self.format {
       Format::Svg => ("image/svg+xml", self.to_svg()),
       Format::Json => ("application/json", self.to_json()),
     };
 
-    let rep = (
-      axum::http::StatusCode::OK,
-      [(axum::http::header::CACHE_CONTROL, cc), (axum::http::header::CONTENT_TYPE, ct.into())],
-      content,
-    );
+    let rep = ([("cache-control", cc), ("content-type", ct.into())], content);
 
-    rep.into_response()
+    axum_core::response::IntoResponse::into_response(rep)
   }
 }
 
