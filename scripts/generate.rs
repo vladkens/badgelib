@@ -259,46 +259,33 @@ fn main() -> io::Result<()> {
       badge: simple_icon("rust", "9a3412"),
     },
     Example {
-      filename: "icon-python.svg",
-      alt: "Python",
+      filename: "icon-github-actions.svg",
+      alt: "GitHub Actions",
       section: Section::SimpleIcons,
-      badge: simple_icon("python", "306998"),
+      badge: simple_icon("GitHub Actions", "2088ff"),
     },
     Example {
-      filename: "icon-typescript.svg",
-      alt: "TypeScript",
+      filename: "icon-cplusplus.svg",
+      alt: "C++",
       section: Section::SimpleIcons,
-      badge: simple_icon("typescript", "235a97"),
+      badge: simple_icon("C++", "00599c"),
     },
     Example {
-      filename: "icon-go.svg",
-      alt: "Go",
+      filename: "icon-dotnet.svg",
+      alt: ".NET",
       section: Section::SimpleIcons,
-      badge: simple_icon("go", "00758d"),
+      badge: simple_icon(".NET", "512bd4"),
     },
     Example {
-      filename: "icon-docker.svg",
-      alt: "Docker",
+      filename: "icon-logo-color.svg",
+      alt: "Explicit logo color",
       section: Section::SimpleIcons,
-      badge: simple_icon("docker", "1d63c4"),
-    },
-    Example {
-      filename: "icon-kubernetes.svg",
-      alt: "Kubernetes",
-      section: Section::SimpleIcons,
-      badge: simple_icon("kubernetes", "3265c7"),
-    },
-    Example {
-      filename: "icon-postgresql.svg",
-      alt: "PostgreSQL",
-      section: Section::SimpleIcons,
-      badge: simple_icon("postgresql", "336791"),
-    },
-    Example {
-      filename: "icon-redis.svg",
-      alt: "Redis",
-      section: Section::SimpleIcons,
-      badge: simple_icon("redis", "a82f24"),
+      badge: Badge::new()
+        .value("explicit color")
+        .value_color(Color::White)
+        .try_logo("rust")
+        .expect("example logo must exist")
+        .logo_color(hex("9a3412")),
     },
     Example {
       filename: "icon-custom.svg",

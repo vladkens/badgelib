@@ -3,14 +3,22 @@
 <div align="center">
 
 [<img src="https://badges.ws/crates/v/badgelib?color=f74d02&logo=rust" alt="version" />](https://crates.io/crates/badgelib)
-[<img src="https://badges.ws/crates/docs/badgelib?logo=rust" alt="docs" />](https://docs.rs/badgelib)
-[<img src="https://badges.ws/crates/dt/badgelib?logo=rust" alt="downloads" />](https://crates.io/crates/badgelib)
+[<img src="https://badges.ws/crates/docs/badgelib?logo=docs.rs" alt="docs" />](https://docs.rs/badgelib)
+[<img src="https://badges.ws/crates/dt/badgelib" alt="downloads" />](https://crates.io/crates/badgelib)
 [<img src="https://badges.ws/github/license/vladkens/badgelib" alt="license" />](https://github.com/vladkens/badgelib/blob/main/LICENSE)
 [<img src="https://badges.ws/badge/-/buy%20me%20a%20coffee/ff813f?icon=buymeacoffee&label" alt="donate" />](https://buymeacoffee.com/vladkens)
 
 </div>
 
 `badgelib` is a Rust library for rendering customizable SVG badges directly in your application. Use it when you want to generate badges without running a separate badge service. It powers [badges.ws](https://badges.ws); the web service and its data integrations live in the main [badges repository](https://github.com/vladkens/badges).
+
+## Used by
+
+- [badges.ws](https://badges.ws) uses `badgelib` to power its hosted badge service.
+- [Gradient](https://github.com/wavelens/gradient) renders task status badges for its self-hosted Nix CI.
+- [ghstats](https://github.com/vladkens/ghstats) renders repository, portfolio, and service metrics as SVG badges.
+
+Using `badgelib` in a public project? Send a pull request to add it to this list.
 
 ## Install
 
@@ -130,9 +138,11 @@ The bundled [Simple Icons](https://simpleicons.org) collection is opt-in so appl
 cargo add badgelib --features simple-icons
 ```
 
-With the feature enabled, `logo` and `logo_color` look up and customize a slug from the current collection or any historical release supported by `badgelib`. Without the feature, these builder methods are not available and incoming `logo` fields are ignored during deserialization:
+With the feature enabled, `logo` and `logo_color` select and customize a slug from the current collection, including slugs removed from supported historical releases. Standard Simple Icons follow the text color unless `logo_color` is set explicitly.
 
-Standard Simple Icons follow the text color unless `logo_color` is set explicitly.
+Lookups are case-insensitive. Spaces, hyphens, underscores, and `!` can be omitted; `.` and `+` also follow the Simple Icons `dot` and `plus` slug conventions, so names such as `GitHub Actions`, `C++`, and `.NET` work directly.
+
+Without the feature, the named-logo builder methods are unavailable and incoming `logo` fields are ignored during deserialization. Custom SVG icons remain available.
 
 ```rust
 use badgelib::{Badge, Color};
@@ -155,19 +165,16 @@ let badge = badgelib::Badge::new()
 <!-- examples:simple-icons:start -->
 <p align="center">
   <img src="examples/icon-rust.svg" alt="Rust">
-  <img src="examples/icon-python.svg" alt="Python">
-  <img src="examples/icon-typescript.svg" alt="TypeScript">
-  <img src="examples/icon-go.svg" alt="Go">
-  <img src="examples/icon-docker.svg" alt="Docker">
-  <img src="examples/icon-kubernetes.svg" alt="Kubernetes">
-  <img src="examples/icon-postgresql.svg" alt="PostgreSQL">
-  <img src="examples/icon-redis.svg" alt="Redis">
+  <img src="examples/icon-github-actions.svg" alt="GitHub Actions">
+  <img src="examples/icon-cplusplus.svg" alt="C++">
+  <img src="examples/icon-dotnet.svg" alt=".NET">
+  <img src="examples/icon-logo-color.svg" alt="Explicit logo color">
 </p>
 <!-- examples:simple-icons:end -->
 
 ## Custom icons
 
-Custom SVG icons remain available without features. Use `icon_svg` for project-specific artwork or icons that require multiple colors or shapes:
+Custom SVG icons remain available without features. Use `icon_svg` for project-specific artwork or icons that require multiple colors or shapes. Pass only trusted markup: `badgelib` embeds custom SVG without sanitizing it.
 
 ```rust
 use badgelib::Badge;
@@ -259,7 +266,6 @@ let rating = Badge::new().for_rating("rating", 4.5, 5.0);
 </p>
 <!-- examples:built-ins:end -->
 
-
 Available helpers cover versions, licenses, downloads, CI status, counts, sizes, ratings, star ratings, and relative durations. You can override their labels and colors with the regular builder methods.
 
 ## JSON output
@@ -274,7 +280,14 @@ let json = badgelib::Badge::new()
 ```
 
 ```json
-{"label":"version","labelColor":null,"value":"v1.2.0","color":null,"radius":null,"style":"flat"}
+{
+  "label": "version",
+  "labelColor": null,
+  "value": "v1.2.0",
+  "color": null,
+  "radius": null,
+  "style": "flat"
+}
 ```
 
 `logo` and `logoColor` also appear when the `simple-icons` feature is enabled. `format` and `cache` appear when the `axum` feature is enabled.
@@ -296,19 +309,6 @@ async fn version_badge() -> Badge {
 ```
 
 With this feature enabled, `Badge` implements Axum's `IntoResponse` and returns SVG by default with the appropriate content type and cache headers.
-
-## Development
-
-Clone the repository, then run the existing checks:
-
-```sh
-git clone https://github.com/vladkens/badgelib.git
-cd badgelib
-make check
-make test
-```
-
-`make update` refreshes dependencies and regenerates the embedded historical Simple Icons map and font-width table.
 
 ## Credits
 
