@@ -301,14 +301,29 @@ cargo add badgelib --features axum
 ```
 
 ```rust
+use axum::{http::header, response::IntoResponse};
 use badgelib::Badge;
 
-async fn version_badge() -> Badge {
-  Badge::new().for_version("version", env!("CARGO_PKG_VERSION"))
+async fn version_badge() -> impl IntoResponse {
+  (
+    [(header::CACHE_CONTROL, "public, max-age=60")],
+    Badge::new().for_version("version", env!("CARGO_PKG_VERSION")),
+  )
 }
 ```
 
-With this feature enabled, `Badge` implements Axum's `IntoResponse` and returns SVG by default with the appropriate content type and cache headers.
+With this feature enabled, `Badge` implements Axum's `IntoResponse` and returns SVG by default with the appropriate content type and cache headers. Cache policy depends on the freshness of the underlying data, so configure it with regular Axum response headers as shown above or with route middleware; an outer header overrides the default emitted by `Badge`.
+
+## WebAssembly
+
+`badgelib` supports the `wasm32-unknown-unknown` target with its default configuration and with the optional `simple-icons` and `axum` features. It can be used from [workers-rs](https://github.com/cloudflare/workers-rs) applications on Cloudflare Workers and from other Rust WebAssembly hosts.
+
+```sh
+rustup target add wasm32-unknown-unknown
+cargo build --release --target wasm32-unknown-unknown --all-features
+```
+
+The crate provides badge rendering rather than a Worker entrypoint, so the host application remains responsible for runtime bindings and deployment. The `axum` feature adds `IntoResponse` integration without enabling Axum's Tokio and HTTP server stack.
 
 ## Credits
 

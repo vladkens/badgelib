@@ -768,4 +768,16 @@ mod tests {
     assert_eq!(gradient.value_color, None);
     assert_eq!(gradient.value_gradient, Some(vec![Color::Red, Color::Blue]));
   }
+
+  #[cfg(feature = "axum")]
+  #[test]
+  fn test_axum_response_headers_can_be_overridden() {
+    use axum::http::header;
+    use axum::response::IntoResponse;
+
+    let response = ([(header::CACHE_CONTROL, "no-store")], Badge::new()).into_response();
+
+    assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    assert_eq!(response.headers()[header::CONTENT_TYPE], "image/svg+xml");
+  }
 }
