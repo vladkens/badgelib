@@ -1,3 +1,17 @@
+## v0.5.1 – 2026-08-26
+
+### Features
+
+- Added support for building `badgelib` for `wasm32-unknown-unknown`, including with the optional `simple-icons` and `axum` features
+
+### Improvements
+
+- Reduced the dependency graph and compile overhead for client applications, especially when using the optional Axum integration
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.5.0...v0.5.1
+
+---
+
 ## v0.5.0 – 2026-08-22
 
 ### Breaking Changes

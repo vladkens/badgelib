@@ -45,6 +45,8 @@ fn main() -> std::io::Result<()> {
 
 `Badge::to_svg()` returns the complete SVG document as a `String`. Badges can include separate label and value colors, left-to-right gradients, a custom SVG icon, and a border radius.
 
+SVG files embedded through `<img>` are isolated from one another. Inserting multiple rendered SVG documents directly into the same DOM may cause their internal IDs to collide; if you need this use case, please open an issue or send a pull request for namespaced IDs.
+
 ## Colors
 
 Choose a named color or pass a validated three- or six-digit hexadecimal value. The built-in colors retain the original palette's hues with enough depth for a consistent white foreground; `White` uses dark text instead.
