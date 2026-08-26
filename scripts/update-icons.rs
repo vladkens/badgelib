@@ -71,7 +71,7 @@ fn git_output(repo: &Path, args: &[&str]) -> Result<Vec<u8>, String> {
     .arg(repo)
     .args(args)
     .output()
-    .map_err(|error| format!("failed to run git {}: {error}", args.join(" ")))?;
+    .map_err(|e| format!("failed to run git {}: {e}", args.join(" ")))?;
 
   if output.status.success() {
     Ok(output.stdout)
@@ -90,13 +90,12 @@ fn prepare_repository(url: &str, destination: &Path) -> Result<(), String> {
   let parent = destination.parent().ok_or_else(|| {
     format!("temporary Simple Icons repository has no parent: {}", destination.display())
   })?;
-  fs::create_dir_all(parent)
-    .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+  fs::create_dir_all(parent).map_err(|e| format!("failed to create {}: {e}", parent.display()))?;
   let output = Command::new("git")
     .args(["clone", "--bare", "--no-single-branch", "--tags", url])
     .arg(destination)
     .output()
-    .map_err(|error| format!("failed to clone Simple Icons: {error}"))?;
+    .map_err(|e| format!("failed to clone Simple Icons: {e}"))?;
 
   if output.status.success() {
     Ok(())
@@ -111,8 +110,7 @@ fn release_tags(repo: &Path) -> Result<Vec<ReleaseTag>, String> {
     repo,
     &["for-each-ref", "--format=%(refname:short)\t%(creatordate:unix)", "refs/tags"],
   )?;
-  let output =
-    String::from_utf8(output).map_err(|error| format!("git returned invalid UTF-8: {error}"))?;
+  let output = String::from_utf8(output).map_err(|e| format!("git returned invalid UTF-8: {e}"))?;
   let mut tags = Vec::new();
 
   for line in output.lines() {
@@ -122,9 +120,8 @@ fn release_tags(repo: &Path) -> Result<Vec<ReleaseTag>, String> {
     let Some(version) = ReleaseVersion::parse(name) else {
       continue;
     };
-    let created_at = created_at
-      .parse()
-      .map_err(|error| format!("invalid creation date for tag {name}: {error}"))?;
+    let created_at =
+      created_at.parse().map_err(|e| format!("invalid creation date for tag {name}: {e}"))?;
     tags.push(ReleaseTag { name: name.into(), version, created_at });
   }
 
@@ -154,9 +151,9 @@ fn icon_oids(repo: &Path, reference: &str) -> Result<BTreeMap<String, String>, S
       .position(|byte| *byte == b'\t')
       .ok_or_else(|| format!("malformed tree entry in {reference}"))?;
     let metadata = std::str::from_utf8(&record[..tab])
-      .map_err(|error| format!("malformed tree metadata in {reference}: {error}"))?;
+      .map_err(|e| format!("malformed tree metadata in {reference}: {e}"))?;
     let path = std::str::from_utf8(&record[tab + 1..])
-      .map_err(|error| format!("malformed icon path in {reference}: {error}"))?;
+      .map_err(|e| format!("malformed icon path in {reference}: {e}"))?;
     let mut metadata = metadata.split_ascii_whitespace();
     let _mode = metadata.next();
     let kind = metadata.next();
@@ -187,16 +184,15 @@ fn read_blobs(repo: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, S
     .stdout(Stdio::piped())
     .stderr(Stdio::piped())
     .spawn()
-    .map_err(|error| format!("failed to run git cat-file --batch: {error}"))?;
+    .map_err(|e| format!("failed to run git cat-file --batch: {e}"))?;
   let mut stdin = child.stdin.take().ok_or("failed to open git cat-file stdin")?;
   let requests = oids.iter().map(String::as_str).collect::<Vec<_>>().join("\n") + "\n";
   let writer = std::thread::spawn(move || stdin.write_all(requests.as_bytes()));
-  let output =
-    child.wait_with_output().map_err(|error| format!("failed to read git objects: {error}"))?;
+  let output = child.wait_with_output().map_err(|e| format!("failed to read git objects: {e}"))?;
   writer
     .join()
     .map_err(|_| "git object writer thread panicked".to_string())?
-    .map_err(|error| format!("failed to request git objects: {error}"))?;
+    .map_err(|e| format!("failed to request git objects: {e}"))?;
 
   if !output.status.success() {
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -212,7 +208,7 @@ fn read_blobs(repo: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, S
       .map(|offset| cursor + offset)
       .ok_or_else(|| format!("missing git object header for {oid}"))?;
     let header = std::str::from_utf8(&output.stdout[cursor..header_end])
-      .map_err(|error| format!("invalid git object header for {oid}: {error}"))?;
+      .map_err(|e| format!("invalid git object header for {oid}: {e}"))?;
     let fields = header.split_ascii_whitespace().collect::<Vec<_>>();
     if fields.get(1) == Some(&"missing") {
       return Err(format!(
@@ -222,9 +218,8 @@ fn read_blobs(repo: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, S
     if fields.get(1) != Some(&"blob") || fields.len() != 3 {
       return Err(format!("unexpected git object header for {oid}: {header}"));
     }
-    let size = fields[2]
-      .parse::<usize>()
-      .map_err(|error| format!("invalid git object size for {oid}: {error}"))?;
+    let size =
+      fields[2].parse::<usize>().map_err(|e| format!("invalid git object size for {oid}: {e}"))?;
     let data_start = header_end + 1;
     let data_end = data_start
       .checked_add(size)
@@ -234,7 +229,7 @@ fn read_blobs(repo: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, S
       return Err(format!("malformed git object terminator for {oid}"));
     }
     let data = String::from_utf8(output.stdout[data_start..data_end].to_vec())
-      .map_err(|error| format!("icon blob {oid} is not UTF-8: {error}"))?;
+      .map_err(|e| format!("icon blob {oid} is not UTF-8: {e}"))?;
     blobs.insert(oid.clone(), data);
     cursor = data_end + 1;
   }
@@ -308,9 +303,8 @@ fn read_icon_paths(
     .into_par_iter()
     .map(|(oid, (slug, release))| {
       let svg = blobs.get(&oid).ok_or_else(|| format!("missing loaded blob {oid}"))?;
-      let path = extract_path_data(svg).map_err(|error| {
-        format!("failed to parse icon {slug:?} from release {release}: {error}")
-      })?;
+      let path = extract_path_data(svg)
+        .map_err(|e| format!("failed to parse icon {slug:?} from release {release}: {e}"))?;
       Ok((oid, path))
     })
     .collect::<Result<Vec<_>, String>>()?;
@@ -410,12 +404,12 @@ fn write_generated(root: &Path, relative_path: &str, body: &str) -> Result<Gener
   let temp_file = out_file.with_file_name(format!(".{filename}.tmp.rs"));
   let code = format!("// This file is generated by scripts/update-icons.rs\n{body}\n");
   fs::write(&temp_file, code)
-    .map_err(|error| format!("failed to write {}: {error}", temp_file.display()))?;
-  let generated = fs::read(&temp_file)
-    .map_err(|error| format!("failed to read {}: {error}", temp_file.display()))?;
+    .map_err(|e| format!("failed to write {}: {e}", temp_file.display()))?;
+  let generated =
+    fs::read(&temp_file).map_err(|e| format!("failed to read {}: {e}", temp_file.display()))?;
   let changed = fs::read(&out_file).map_or(true, |existing| existing != generated);
   fs::rename(&temp_file, &out_file)
-    .map_err(|error| format!("failed to replace {}: {error}", out_file.display()))?;
+    .map_err(|e| format!("failed to replace {}: {e}", out_file.display()))?;
   Ok(GeneratedFile { bytes: generated.len() as u64, changed })
 }
 

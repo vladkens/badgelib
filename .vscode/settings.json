@@ -12,6 +12,7 @@
     "Cargo.lock": true,
     "changelog.md": true,
     "LICENSE": true,
+    "SECURITY.md": true,
     "target": true,
     "vendor": true
   },

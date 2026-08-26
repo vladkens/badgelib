@@ -1,3 +1,4 @@
-/target
-/3rd
 .DS_Store
+/3rd
+/security-scan
+/target

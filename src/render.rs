@@ -654,6 +654,17 @@ mod tests {
   }
 
   #[test]
+  fn test_text_is_escaped_as_xml() {
+    let svg = Badge::new().label("<script>").value("a&b").to_svg();
+
+    assert!(svg.contains(r#"aria-label="&lt;script&gt;: a&amp;b""#));
+    assert!(svg.contains("<title>&lt;script&gt;: a&amp;b</title>"));
+    assert!(svg.contains(">&lt;script&gt;</text>"));
+    assert!(svg.contains(">a&amp;b</text>"));
+    assert!(!svg.contains("<script>"));
+  }
+
+  #[test]
   fn test_for_the_badge_features() {
     let svg = Badge::new()
       .label("build")
