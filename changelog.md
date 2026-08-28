@@ -1,3 +1,13 @@
+## v0.5.2 – 2026-08-28
+
+### Improvements
+
+- Reduced the downstream dependency tree by removing Maud from SVG rendering
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.5.1...v0.5.2
+
+---
+
 ## v0.5.1 – 2026-08-26
 
 ### Features
