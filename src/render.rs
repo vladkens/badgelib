@@ -1,9 +1,31 @@
+use std::fmt::{self, Write as _};
+
 use super::Badge;
 use crate::Color;
 use crate::param::{Animation, Style};
 use crate::utils::{cacl_width, text_color, to_icon_uri};
 #[cfg(feature = "simple-icons")]
 use crate::utils::{get_icon, has_icon};
+
+struct Escaped<'a>(&'a str);
+
+impl fmt::Display for Escaped<'_> {
+  fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    for character in self.0.chars() {
+      formatter.write_str(match character {
+        '&' => "&amp;",
+        '<' => "&lt;",
+        '>' => "&gt;",
+        '"' => "&quot;",
+        _ => {
+          formatter.write_char(character)?;
+          continue;
+        }
+      })?;
+    }
+    Ok(())
+  }
+}
 
 fn gradient_offset(index: usize, color_count: usize) -> String {
   let offset = index as f32 * 100.0 / (color_count - 1) as f32;
@@ -146,9 +168,18 @@ struct Layout {
 }
 
 struct Background {
-  defs: maud::Markup,
-  fill: maud::Markup,
-  effect: maud::Markup,
+  defs: String,
+  fill: String,
+  effect: String,
+}
+
+struct AuroraEllipse<'a> {
+  x: f32,
+  y: f32,
+  rx: f32,
+  ry: f32,
+  color: &'a str,
+  opacity: f32,
 }
 
 fn badge_fill(color: Option<&Color>, gradient: Option<&[Color]>, default: Color) -> Fill {
@@ -263,138 +294,170 @@ fn for_the_badge_layout(badge: &Badge, ltext: &str, rtext: &str, has_icon: bool)
   Layout { w, h, fz, y: fz * 1.75, ix: icon_pad, iw, label, value }
 }
 
-fn render_gradient(id: &str, colors: &[Color], x: f32, w: f32, flow: bool) -> maud::Markup {
+fn render_gradient_stops(colors: &[Color]) -> String {
+  colors
+    .iter()
+    .enumerate()
+    .map(|(index, color)| {
+      format!(
+        r##"<stop offset="{}" stop-color="{}"></stop>"##,
+        Escaped(&gradient_offset(index, colors.len())),
+        Escaped(&color.to_css())
+      )
+    })
+    .collect()
+}
+
+fn render_linear_gradient(id: &str, x1: f32, x2: f32, content: &str) -> String {
+  format!(
+    r##"<linearGradient id="{}" gradientUnits="userSpaceOnUse" x1="{}" y1="0" x2="{}" y2="0">{}</linearGradient>"##,
+    Escaped(id),
+    x1,
+    x2,
+    content
+  )
+}
+
+fn render_gradient(id: &str, colors: &[Color], x: f32, w: f32, flow: bool) -> String {
   let x2 = x + w;
+  let static_stops = render_gradient_stops(colors);
   if !flow {
-    return maud::html! {
-      linearGradient id=(id) gradientUnits="userSpaceOnUse" x1=(x) y1="0" x2=(x2) y2="0" {
-        @for (index, color) in colors.iter().enumerate() {
-          stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
-        }
-      }
-    };
+    return render_linear_gradient(id, x, x2, &static_stops);
   }
 
   let static_id = format!("{id}s");
+  let static_gradient = render_linear_gradient(&static_id, x, x2, &static_stops);
   let sequence = looping_gradient_stops(colors);
+  let moving_stops = render_gradient_stops(&sequence);
   let period = flow_period(w, colors.len());
   let duration = flow_duration(period, w);
-  maud::html! {
-    linearGradient id=(static_id) gradientUnits="userSpaceOnUse" x1=(x) y1="0" x2=(x2) y2="0" {
-      @for (index, color) in colors.iter().enumerate() {
-        stop offset=(gradient_offset(index, colors.len())) stop-color=(color.to_css()) {}
-      }
-    }
-    linearGradient id=(id) gradientUnits="userSpaceOnUse" x1=(x) y1="0" x2=(x+period*2.0) y2="0" {
-      @for (index, color) in sequence.iter().enumerate() {
-        stop offset=(gradient_offset(index, sequence.len())) stop-color=(color.to_css()) {}
-      }
-      (maud::PreEscaped(format!(
-        concat!(
-          r#"<animateTransform attributeName="gradientTransform" type="translate" "#,
-          r#"from="0 0" to="{} 0" dur="{:.2}s" repeatCount="indefinite"/>"#
-        ),
-        -period, duration
-      )))
-    }
-  }
+  let movement = format!(
+    r##"<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="{} 0" dur="{:.2}s" repeatCount="indefinite"/>"##,
+    -period, duration
+  );
+  let moving_content = format!("{moving_stops}{movement}");
+  let moving_gradient = render_linear_gradient(id, x, x + period * 2.0, &moving_content);
+  format!("{static_gradient}{moving_gradient}")
 }
 
-fn render_gradients(layout: &Layout, flow: bool) -> maud::Markup {
-  maud::html! {
-    @if let Some(label) = &layout.label {
-      @if let Fill::Gradient(colors) = &label.fill {
-        (render_gradient("lg", colors, label.x, label.w, flow))
-      }
-    }
-    @if let Fill::Gradient(colors) = &layout.value.fill {
-      (render_gradient("vg", colors, layout.value.x, layout.value.w, flow))
-    }
-  }
+fn render_gradients(layout: &Layout, flow: bool) -> String {
+  let label = layout.label.as_ref().map_or_else(String::new, |label| match &label.fill {
+    Fill::Gradient(colors) => render_gradient("lg", colors, label.x, label.w, flow),
+    Fill::Solid(_) => String::new(),
+  });
+  let value = match &layout.value.fill {
+    Fill::Gradient(colors) => render_gradient("vg", colors, layout.value.x, layout.value.w, flow),
+    Fill::Solid(_) => String::new(),
+  };
+  format!("{label}{value}")
 }
 
-fn render_fill(layout: &Layout, flow: bool) -> maud::Markup {
-  maud::html! {
-    @if let Some(label) = &layout.label {
-      @let fill = label.fill.css("lg");
-      @if flow && matches!(&label.fill, Fill::Gradient(_)) {
-        rect class="flow-label" x="0" y="0" width=(layout.w) height=(layout.h)
-          fill="url(#lg)" {}
-      } @else {
-        rect x="0" y="0" width=(layout.w) height=(layout.h) fill=(fill) {}
-      }
+fn render_fill(layout: &Layout, flow: bool) -> String {
+  let label = if let Some(label) = &layout.label {
+    let fill = label.fill.css("lg");
+    if flow && matches!(&label.fill, Fill::Gradient(_)) {
+      format!(
+        r##"<rect class="flow-label" x="0" y="0" width="{}" height="{}" fill="url(#lg)"></rect>"##,
+        layout.w, layout.h
+      )
+    } else {
+      format!(
+        r##"<rect x="0" y="0" width="{}" height="{}" fill="{}"></rect>"##,
+        layout.w,
+        layout.h,
+        Escaped(&fill)
+      )
     }
-    @let fill = layout.value.fill.css("vg");
-    @if flow && matches!(&layout.value.fill, Fill::Gradient(_)) {
-      rect class="flow-value" x=(layout.value.x) y="0" width=(layout.value.w)
-        height=(layout.h) fill="url(#vg)" rx=(0) {}
-    } @else {
-      rect x=(layout.value.x) y="0" width=(layout.value.w) height=(layout.h) fill=(fill) rx=(0) {}
-    }
-  }
+  } else {
+    String::new()
+  };
+
+  let fill = layout.value.fill.css("vg");
+  let value = if flow && matches!(&layout.value.fill, Fill::Gradient(_)) {
+    format!(
+      r##"<rect class="flow-value" x="{}" y="0" width="{}" height="{}" fill="url(#vg)" rx="0"></rect>"##,
+      layout.value.x, layout.value.w, layout.h
+    )
+  } else {
+    format!(
+      r##"<rect x="{}" y="0" width="{}" height="{}" fill="{}" rx="0"></rect>"##,
+      layout.value.x,
+      layout.value.w,
+      layout.h,
+      Escaped(&fill)
+    )
+  };
+  format!("{label}{value}")
 }
 
 fn render_static_background(layout: &Layout) -> Background {
   Background {
     defs: render_gradients(layout, false),
     fill: render_fill(layout, false),
-    effect: maud::html! {},
+    effect: String::new(),
   }
 }
 
 fn render_flow(layout: &Layout) -> Background {
-  Background {
-    defs: maud::html! {
-      style {
-        (maud::PreEscaped(
-          concat!(
-            "@media (prefers-reduced-motion: reduce) {",
-            ".flow-label{fill:url(#lgs)}.flow-value{fill:url(#vgs)}",
-            "}"
-          )
-        ))
-      }
-      (render_gradients(layout, true))
-    },
-    fill: render_fill(layout, true),
-    effect: maud::html! {},
-  }
+  let gradients = render_gradients(layout, true);
+  let reduced_motion = r##"<style>@media (prefers-reduced-motion: reduce) {.flow-label{fill:url(#lgs)}.flow-value{fill:url(#vgs)}}</style>"##;
+  let defs = format!("{reduced_motion}{gradients}");
+  Background { defs, fill: render_fill(layout, true), effect: String::new() }
 }
 
 fn render_shine(layout: &Layout) -> Background {
   let Background { defs, fill, .. } = render_static_background(layout);
   let band = layout.h * 1.15;
+  let reduced_motion =
+    r##"<style>@media (prefers-reduced-motion: reduce) {.shine{display:none}}</style>"##;
+  let stops = [
+    r##"<stop offset="0%" stop-color="#fff" stop-opacity="0"></stop>"##,
+    r##"<stop offset="38%" stop-color="#fff" stop-opacity="0.05"></stop>"##,
+    r##"<stop offset="50%" stop-color="#fff" stop-opacity="0.3"></stop>"##,
+    r##"<stop offset="62%" stop-color="#fff" stop-opacity="0.05"></stop>"##,
+    r##"<stop offset="100%" stop-color="#fff" stop-opacity="0"></stop>"##,
+  ]
+  .concat();
+  let gradient = format!(
+    r##"<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(-12 .5 .5)">{}</linearGradient>"##,
+    stops
+  );
+  let defs = format!("{defs}{reduced_motion}{gradient}");
+  let movement = format!(
+    r##"<animate attributeName="x" values="{0};{0};{1};{1}" keyTimes="0;0.25;0.70;1" calcMode="spline" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1" dur="4s" repeatCount="indefinite"/>"##,
+    -band,
+    layout.w + band
+  );
+  let effect = format!(
+    r##"<rect class="shine" y="0" width="{}" height="{}" fill="url(#sh)">{}</rect>"##,
+    band, layout.h, movement
+  );
 
-  Background {
-    defs: maud::html! {
-      (defs)
-      style { (maud::PreEscaped("@media (prefers-reduced-motion: reduce) {.shine{display:none}}")) }
-      linearGradient id="sh" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(-12 .5 .5)" {
-        stop offset="0%" stop-color="#fff" stop-opacity="0" {}
-        stop offset="38%" stop-color="#fff" stop-opacity="0.05" {}
-        stop offset="50%" stop-color="#fff" stop-opacity="0.3" {}
-        stop offset="62%" stop-color="#fff" stop-opacity="0.05" {}
-        stop offset="100%" stop-color="#fff" stop-opacity="0" {}
-      }
-    },
-    fill,
-    effect: maud::html! {
-      rect class="shine" y="0" width=(band) height=(layout.h) fill="url(#sh)" {
-        (maud::PreEscaped(format!(
-          concat!(
-            r#"<animate attributeName="x" values="{};{};{};{}" "#,
-            r#"keyTimes="0;0.25;0.70;1" calcMode="spline" "#,
-            r#"keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1" "#,
-            r#"dur="4s" repeatCount="indefinite"/>"#
-          ),
-          -band,
-          -band,
-          layout.w + band,
-          layout.w + band
-        )))
-      }
-    },
-  }
+  Background { defs, fill, effect }
+}
+
+fn render_aurora_ellipse(ellipse: &AuroraEllipse<'_>, animation: &str) -> String {
+  format!(
+    r##"<ellipse cx="{}" cy="{}" rx="{}" ry="{}" fill="{}" fill-opacity="{}">{}</ellipse>"##,
+    ellipse.x,
+    ellipse.y,
+    ellipse.rx,
+    ellipse.ry,
+    Escaped(ellipse.color),
+    ellipse.opacity,
+    animation
+  )
+}
+
+fn render_aurora_movement(start: f32, end: f32, duration: u8) -> String {
+  format!(
+    r##"<animate attributeName="cx" values="{0};{1};{0}" dur="{2}s" repeatCount="indefinite"/>"##,
+    start, end, duration
+  )
+}
+
+fn render_aurora_group(class: &str, ellipses: &str) -> String {
+  format!(r##"<g class="{}" filter="url(#aurora-blur)">{}</g>"##, Escaped(class), ellipses)
 }
 
 fn render_aurora(layout: &Layout) -> Background {
@@ -403,60 +466,60 @@ fn render_aurora(layout: &Layout) -> Background {
   base.extend(layout.value.fill.colors());
   let (palette, opacity) = aurora_palette(&base);
   let (w, h) = (layout.w, layout.h);
+  let reduced_motion = r##"<style>.aurora-static{display:none}@media (prefers-reduced-motion: reduce) {.aurora-motion{display:none}.aurora-static{display:inline}}</style>"##;
+  let blur = format!(r##"<feGaussianBlur stdDeviation="{}"></feGaussianBlur>"##, h * 0.22);
+  let filter = format!(
+    r##"<filter id="aurora-blur" x="-30%" y="-80%" width="160%" height="260%">{}</filter>"##,
+    blur
+  );
+  let defs = format!("{defs}{reduced_motion}{filter}");
 
-  Background {
-    defs: maud::html! {
-      (defs)
-      style {
-        (maud::PreEscaped(
-          concat!(
-            ".aurora-static{display:none}",
-            "@media (prefers-reduced-motion: reduce) {",
-            ".aurora-motion{display:none}.aurora-static{display:inline}",
-            "}"
-          )
-        ))
-      }
-      filter id="aurora-blur" x="-30%" y="-80%" width="160%" height="260%" {
-        feGaussianBlur stdDeviation=(h*0.22) {}
-      }
-    },
-    fill,
-    effect: maud::html! {
-      @let shapes = maud::html! {
-        ellipse cx=(w*0.18) cy=(h*0.15) rx=(w*0.42) ry=(h*0.78)
-          fill=(&palette[0]) fill-opacity=(opacity) {}
-        ellipse cx=(w*0.58) cy=(h*0.78) rx=(w*0.38) ry=(h*0.72)
-          fill=(&palette[1]) fill-opacity=(opacity*0.9) {}
-        ellipse cx=(w*0.92) cy=(h*0.28) rx=(w*0.34) ry=(h*0.68)
-          fill=(&palette[2]) fill-opacity=(opacity*0.8) {}
-      };
-      g class="aurora-static" filter="url(#aurora-blur)" { (shapes) }
-      g class="aurora-motion" filter="url(#aurora-blur)" {
-        ellipse cx=(w*0.18) cy=(h*0.15) rx=(w*0.42) ry=(h*0.78)
-          fill=(&palette[0]) fill-opacity=(opacity) {
-          (maud::PreEscaped(format!(
-            r#"<animate attributeName="cx" values="{};{};{}" dur="11s" repeatCount="indefinite"/>"#,
-            w * 0.18, w * 0.82, w * 0.18
-          )))
-        }
-        ellipse cx=(w*0.58) cy=(h*0.78) rx=(w*0.38) ry=(h*0.72)
-          fill=(&palette[1]) fill-opacity=(opacity*0.9) {
-          (maud::PreEscaped(format!(
-            r#"<animate attributeName="cx" values="{};{};{}" dur="14s" repeatCount="indefinite"/>"#,
-            w * 0.72, w * 0.22, w * 0.72
-          )))
-        }
-        ellipse cx=(w*0.92) cy=(h*0.28) rx=(w*0.34) ry=(h*0.68)
-          fill=(&palette[2]) fill-opacity=(opacity*0.8) {
-          (maud::PreEscaped(format!(
-            r#"<animate attributeName="cx" values="{};{};{}" dur="17s" repeatCount="indefinite"/>"#,
-            w * 0.92, w * 0.38, w * 0.92
-          )))
-        }
-      }
-    },
-  }
+  let first = AuroraEllipse {
+    x: w * 0.18,
+    y: h * 0.15,
+    rx: w * 0.42,
+    ry: h * 0.78,
+    color: &palette[0],
+    opacity,
+  };
+  let second = AuroraEllipse {
+    x: w * 0.58,
+    y: h * 0.78,
+    rx: w * 0.38,
+    ry: h * 0.72,
+    color: &palette[1],
+    opacity: opacity * 0.9,
+  };
+  let third = AuroraEllipse {
+    x: w * 0.92,
+    y: h * 0.28,
+    rx: w * 0.34,
+    ry: h * 0.68,
+    color: &palette[2],
+    opacity: opacity * 0.8,
+  };
+
+  let static_ellipses = [
+    render_aurora_ellipse(&first, ""),
+    render_aurora_ellipse(&second, ""),
+    render_aurora_ellipse(&third, ""),
+  ]
+  .concat();
+  let static_group = render_aurora_group("aurora-static", &static_ellipses);
+
+  let first_movement = render_aurora_movement(first.x, w * 0.82, 11);
+  let second_movement = render_aurora_movement(w * 0.72, w * 0.22, 14);
+  let third_movement = render_aurora_movement(third.x, w * 0.38, 17);
+  let moving_ellipses = [
+    render_aurora_ellipse(&first, &first_movement),
+    render_aurora_ellipse(&second, &second_movement),
+    render_aurora_ellipse(&third, &third_movement),
+  ]
+  .concat();
+  let moving_group = render_aurora_group("aurora-motion", &moving_ellipses);
+  let effect = format!("{static_group}{moving_group}");
+
+  Background { defs, fill, effect }
 }
 
 fn render_background(animation: Option<Animation>, layout: &Layout) -> Background {
@@ -468,13 +531,43 @@ fn render_background(animation: Option<Animation>, layout: &Layout) -> Backgroun
   }
 }
 
-fn render_icon(icon: Option<&str>, layout: &Layout) -> maud::Markup {
-  maud::html! {
-    @if let Some(icon) = icon {
-      image x=(layout.ix) y=((layout.h-layout.iw)/2.0)
-        width=(layout.iw) height=(layout.iw) href=(icon) {}
-    }
+fn render_icon(icon: Option<&str>, layout: &Layout) -> String {
+  match icon {
+    Some(icon) => format!(
+      r##"<image x="{}" y="{}" width="{}" height="{}" href="{}"></image>"##,
+      layout.ix,
+      (layout.h - layout.iw) / 2.0,
+      layout.iw,
+      layout.iw,
+      Escaped(icon)
+    ),
+    None => String::new(),
   }
+}
+
+fn render_standard_text(
+  segment: &Segment,
+  baseline: f32,
+  shadow_offset: (f32, f32),
+  color: &str,
+  text: &str,
+) -> String {
+  let shadow = format!(
+    r##"<text textLength="{}" x="{}" y="{}" fill="#000" opacity="0.25">{}</text>"##,
+    segment.tw,
+    segment.tx + shadow_offset.0,
+    baseline + shadow_offset.1,
+    Escaped(text)
+  );
+  let foreground = format!(
+    r##"<text textLength="{}" x="{}" y="{}" fill="{}">{}</text>"##,
+    segment.tw,
+    segment.tx,
+    baseline,
+    Escaped(color),
+    Escaped(text)
+  );
+  format!("{shadow}{foreground}")
 }
 
 #[cfg(feature = "simple-icons")]
@@ -537,52 +630,59 @@ fn render_standard_svg(badge: &Badge) -> String {
   let radius = (layout.fz / 12.0) * radius as f32;
   let background = render_background(badge.animation, &layout);
   let Background { defs, fill, effect } = background;
+  let highlight_defs = if badge.style == Style::Flat {
+    let stops = [
+      r##"<stop offset="0" stop-opacity=".1" stop-color="#eee"></stop>"##,
+      r##"<stop offset="1" stop-opacity=".1"></stop>"##,
+    ]
+    .concat();
+    format!(r##"<linearGradient id="s" x2="0" y2="100%">{}</linearGradient>"##, stops)
+  } else {
+    String::new()
+  };
+  let highlight = if badge.style == Style::Flat {
+    format!(
+      r##"<rect x="0" y="0" width="{}" height="{}" fill="url(#s)"></rect>"##,
+      layout.w, layout.h
+    )
+  } else {
+    String::new()
+  };
+  let icon = render_icon(icon.as_deref(), &layout);
+  let label_text = if has_text {
+    let label = layout.label.as_ref().unwrap();
+    render_standard_text(label, layout.y, (outx, outy), &lt_color, &ltext)
+  } else {
+    String::new()
+  };
+  let value_text = render_standard_text(&layout.value, layout.y, (outx, outy), &rt_color, &rtext);
 
-  let svg = maud::html!(svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label=(title)
-    viewBox=(format!("0 0 {} {}", layout.w, layout.h)) width=(ww) height=(hh)
-    text-rendering="geometricPrecision"
-  {
-    title { (title) }
+  let title_element = format!(r##"<title>{}</title>"##, Escaped(&title));
+  let mask = format!(
+    r##"<mask id="r"><rect width="{}" height="{}" rx="{}" fill="#fff"></rect></mask>"##,
+    layout.w, layout.h, radius
+  );
+  let badge_body = format!(r##"<g mask="url(#r)">{}{}{}</g>"##, fill, highlight, effect);
+  let text_group = format!(
+    r##"<g font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="{}" aria-hidden="true">{}{}</g>"##,
+    layout.fz, label_text, value_text
+  );
 
-    (defs)
-
-    @if badge.style == Style::Flat {
-      linearGradient id="s" x2="0" y2="100%" {
-        stop offset="0" stop-opacity=".1" stop-color="#eee" {}
-        stop offset="1" stop-opacity=".1" {}
-      }
-    }
-
-    // border-radius
-    mask id="r" { rect width=(layout.w) height=(layout.h) rx=(radius) fill="#fff" {} }
-
-    g mask="url(#r)" {
-      (fill)
-      @if badge.style == Style::Flat {
-        rect x="0" y="0" width=(layout.w) height=(layout.h) fill="url(#s)" {}
-      }
-      (effect)
-    }
-
-    (render_icon(icon.as_deref(), &layout))
-
-    g font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size=(layout.fz)
-      aria-hidden="true" {
-      @if has_text {
-        @let label = layout.label.as_ref().unwrap();
-        text textLength=(label.tw) x=(label.tx+outx) y=(layout.y+outy)
-          fill="#000" opacity="0.25" { (&ltext) }
-        text textLength=(label.tw) x=(label.tx) y=(layout.y)
-          fill=(lt_color) { (&ltext) }
-      }
-      text textLength=(layout.value.tw) x=(layout.value.tx+outx)
-        y=(layout.y+outy) fill="#000" opacity="0.25" { (&rtext) }
-      text textLength=(layout.value.tw) x=(layout.value.tx) y=(layout.y)
-        fill=(rt_color) { (&rtext) }
-    }
-  });
-
-  svg.into_string()
+  format!(
+    r##"<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{title}" viewBox="0 0 {width} {height}" width="{rendered_width}" height="{rendered_height}" text-rendering="geometricPrecision">{title_element}{defs}{highlight_defs}{mask}{badge_body}{icon}{text_group}</svg>"##,
+    title = Escaped(&title),
+    width = layout.w,
+    height = layout.h,
+    rendered_width = ww,
+    rendered_height = hh,
+    title_element = title_element,
+    defs = defs,
+    highlight_defs = highlight_defs,
+    mask = mask,
+    badge_body = badge_body,
+    icon = icon,
+    text_group = text_group
+  )
 }
 
 fn render_for_the_badge_svg(badge: &Badge) -> String {
@@ -605,37 +705,54 @@ fn render_for_the_badge_svg(badge: &Badge) -> String {
   let radius = (layout.fz / 12.0) * radius as f32;
   let background = render_background(badge.animation, &layout);
   let Background { defs, fill, effect } = background;
+  let icon = render_icon(icon.as_deref(), &layout);
+  let label_text = if has_text {
+    let label = layout.label.as_ref().unwrap();
+    format!(
+      r##"<text textLength="{}" x="{}" y="{}" fill="{}">{}</text>"##,
+      label.tw,
+      label.tx,
+      layout.y,
+      Escaped(&lt_color),
+      Escaped(&ltext)
+    )
+  } else {
+    String::new()
+  };
+  let value_text = format!(
+    r##"<text textLength="{}" x="{}" y="{}" fill="{}" font-weight="bold">{}</text>"##,
+    layout.value.tw,
+    layout.value.tx,
+    layout.y,
+    Escaped(&rt_color),
+    Escaped(&rtext)
+  );
 
-  let svg = maud::html!(svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label=(title)
-    viewBox=(format!("0 0 {} {}", layout.w, layout.h)) width=(layout.w/10.0) height="28"
-    text-rendering="geometricPrecision"
-  {
-    title { (title) }
+  let title_element = format!(r##"<title>{}</title>"##, Escaped(&title));
+  let mask = format!(
+    r##"<mask id="r"><rect width="{}" height="{}" rx="{}" fill="#fff"></rect></mask>"##,
+    layout.w, layout.h, radius
+  );
+  let badge_body =
+    format!(r##"<g mask="url(#r)" shape-rendering="crispEdges">{}{}</g>"##, fill, effect);
+  let text_group = format!(
+    r##"<g font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="{}" letter-spacing=".125em" aria-hidden="true">{}{}</g>"##,
+    layout.fz, label_text, value_text
+  );
 
-    (defs)
-
-    mask id="r" { rect width=(layout.w) height=(layout.h) rx=(radius) fill="#fff" {} }
-
-    g mask="url(#r)" shape-rendering="crispEdges" {
-      (fill)
-      (effect)
-    }
-
-    (render_icon(icon.as_deref(), &layout))
-
-    g font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size=(layout.fz)
-      letter-spacing=".125em" aria-hidden="true" {
-      @if has_text {
-        @let label = layout.label.as_ref().unwrap();
-        text textLength=(label.tw) x=(label.tx) y=(layout.y)
-          fill=(lt_color) { (&ltext) }
-      }
-      text textLength=(layout.value.tw) x=(layout.value.tx) y=(layout.y)
-        fill=(rt_color) font-weight="bold" { (&rtext) }
-    }
-  });
-
-  svg.into_string()
+  format!(
+    r##"<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{title}" viewBox="0 0 {width} {height}" width="{rendered_width}" height="28" text-rendering="geometricPrecision">{title_element}{defs}{mask}{badge_body}{icon}{text_group}</svg>"##,
+    title = Escaped(&title),
+    width = layout.w,
+    height = layout.h,
+    rendered_width = layout.w / 10.0,
+    title_element = title_element,
+    defs = defs,
+    mask = mask,
+    badge_body = badge_body,
+    icon = icon,
+    text_group = text_group
+  )
 }
 
 #[cfg(test)]
@@ -646,22 +763,39 @@ mod tests {
   fn test_for_the_badge_layout() {
     let svg = Badge::new().label("build").value("passing").style(Style::ForTheBadge).to_svg();
 
-    assert!(svg.contains(r#"height="28""#));
+    assert!(svg.contains(r##"height="28""##));
     assert!(svg.contains(">BUILD</text>"));
-    assert!(svg.contains(r#"font-weight="bold">PASSING</text>"#));
-    assert!(svg.contains(r#"rx="0""#));
-    assert!(!svg.contains(r#"id="s""#));
+    assert!(svg.contains(r##"font-weight="bold">PASSING</text>"##));
+    assert!(svg.contains(r##"rx="0""##));
+    assert!(!svg.contains(r##"id="s""##));
   }
 
   #[test]
-  fn test_text_is_escaped_as_xml() {
-    let svg = Badge::new().label("<script>").value("a&b").to_svg();
+  fn test_text_nodes_are_escaped_as_xml() {
+    let svg = Badge::new().label(r##"&<>"'"##).value(r##"&<>"'"##).to_svg();
+    let escaped = "&amp;&lt;&gt;&quot;'";
 
-    assert!(svg.contains(r#"aria-label="&lt;script&gt;: a&amp;b""#));
-    assert!(svg.contains("<title>&lt;script&gt;: a&amp;b</title>"));
-    assert!(svg.contains(">&lt;script&gt;</text>"));
-    assert!(svg.contains(">a&amp;b</text>"));
+    assert!(svg.contains(&format!("<title>{escaped}: {escaped}</title>")));
+    assert_eq!(svg.matches(&format!(">{escaped}</text>")).count(), 4);
+  }
+
+  #[test]
+  fn test_double_quoted_attributes_are_escaped_as_xml() {
+    let svg = Badge::new().label(r##"&<>"'"##).value(r##"&<>"'"##).to_svg();
+
+    assert!(svg.contains(r##"aria-label="&amp;&lt;&gt;&quot;': &amp;&lt;&gt;&quot;'""##));
+  }
+
+  #[test]
+  fn test_markup_shaped_text_cannot_inject_svg() {
+    let injection = r##"</text><script>alert('x')</script><text data-x="pwned">"##;
+    let escaped = r##"&lt;/text&gt;&lt;script&gt;alert('x')&lt;/script&gt;&lt;text data-x=&quot;pwned&quot;&gt;"##;
+    let svg = Badge::new().label(injection).value("safe").to_svg();
+
+    assert!(svg.contains(&format!("<title>{escaped}: safe</title>")));
+    assert_eq!(svg.matches(&format!(">{escaped}</text>")).count(), 2);
     assert!(!svg.contains("<script>"));
+    assert!(!svg.contains(r##"data-x="pwned""##));
   }
 
   #[test]
@@ -670,12 +804,12 @@ mod tests {
       .label("build")
       .value("flowing")
       .value_gradient([Color::Blue, Color::Cyan])
-      .icon_svg(r#"<svg xmlns="http://www.w3.org/2000/svg"></svg>"#)
+      .icon_svg(r##"<svg xmlns="http://www.w3.org/2000/svg"></svg>"##)
       .animation(Animation::Flow)
       .style(Style::ForTheBadge)
       .to_svg();
 
-    assert!(svg.contains(r#"id="vg""#));
+    assert!(svg.contains(r##"id="vg""##));
     assert!(svg.contains("<animateTransform"));
     assert!(svg.contains("<image "));
   }

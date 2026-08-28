@@ -15,6 +15,7 @@
 ## Used by
 
 - [badges.ws](https://badges.ws) uses `badgelib` to power its hosted badge service.
+- [Dagron](https://github.com/lucheeseng827/dagron) renders workflow status badges for its durable workflow engine.
 - [Gradient](https://github.com/wavelens/gradient) renders task status badges for its self-hosted Nix CI.
 - [ghstats](https://github.com/vladkens/ghstats) renders repository, portfolio, and service metrics as SVG badges.
 

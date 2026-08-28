@@ -37,7 +37,6 @@ simple-icons = ["dep:phf"]
 axum-core = { version = "0.5", optional = true }
 base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4.45", default-features = false, features = ["now", "wasmbind"] }
-maud = "0.27.0"
 phf = { version = "0.14.0", optional = true, features = ["macros"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
