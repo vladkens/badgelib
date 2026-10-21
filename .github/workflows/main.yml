@@ -1,79 +1,55 @@
 name: main
 
+# Never pull_request_target or issue_comment: they run PR code with the base branch's rights.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# Main runs queue instead, so a release is never cut off; a release commit gets its own group.
+concurrency:
+  group: ${{ github.workflow }}-${{ startsWith(github.event.head_commit.message, 'release:') && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # One Linux run: the code is platform-independent.
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/cache@v5
+      - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-
-      - run: rustup update --no-self-update stable && rustup default stable
+          save-if: ${{ github.event_name != 'pull_request' }}
       - run: rustup toolchain install nightly --profile minimal --component rustfmt
       - run: make check
       - run: make test
 
-  publish:
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+  # The shared release steps (github.com/vladkens/actions): on a `release: vX.Y.Z (#N)` commit
+  # `build` checks the version and changelog and runs `cargo publish --dry-run` read-only (beside
+  # `test`), then `publish` publishes the crate and creates the tag and the GitHub release.
+  # A library has no release files, so no dev pre-release: other pushes publish nothing.
+  # `publish` never compiles.
+  build:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    needs: test
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v7
+      - uses: vladkens/actions/rust-build@v1
 
-      - run: rustup update --no-self-update stable && rustup default stable
-
-      - name: Check Cargo.toml version matches tag
-        run: |
-          TAG="${{ github.ref_name }}"
-          CARGO_VERSION="v$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')"
-          if [ "$TAG" != "$CARGO_VERSION" ]; then
-            echo "Error: tag ${TAG} does not match Cargo.toml version ${CARGO_VERSION}"
-            exit 1
-          fi
-
-      - uses: rust-lang/crates-io-auth-action@v1
-        id: auth
-
-      - run: cargo publish --locked
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-
-  release:
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+  publish:
+    if: github.ref == 'refs/heads/main' # write rights only for main's own workflow
+    needs: [test, build]
     runs-on: ubuntu-latest
-    needs: publish
     permissions:
       contents: write
+      id-token: write # crates.io Trusted Publishing
     steps:
       - uses: actions/checkout@v7
-
-      - name: Extract changelog entry
-        run: |
-          VERSION="${{ github.ref_name }}"
-          NOTES=$(awk "/^## ${VERSION}/{found=1; next} /^## /{found=0} found && !/^---$/" changelog.md)
-          if [ -z "$NOTES" ]; then
-            echo "Error: no changelog entry found for ${VERSION}"
-            exit 1
-          fi
-          echo "$NOTES" > release_notes.txt
-
-      - run: gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --notes-file release_notes.txt
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: vladkens/actions/rust-publish@v1
+        with:
+          files: false # a library: no binaries to attach
