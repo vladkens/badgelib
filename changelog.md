@@ -1,3 +1,13 @@
+## v0.5.3 – 2026-10-21
+
+### Improvements
+
+- Updated Simple Icons to 16.35.0: 13 new named logos, including Aspire, AtomGit, Notesnook, SumUp, Traxsource and Zensical, and the current Payload CMS and Shortcut designs
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.5.2...v0.5.3
+
+---
+
 ## v0.5.2 – 2026-08-28
 
 ### Improvements
