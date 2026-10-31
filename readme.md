@@ -336,7 +336,7 @@ The crate provides badge rendering rather than a Worker entrypoint, so the host 
 
 ## 🤖 How it's made
 
-badgelib started hand-written and is now written by AI agents (Claude Code, Codex); I choose what to build and review every pull request. Its tests check the rendered SVG for the styles, colors, gradients, animations and icons, including that badge text can't inject markup, and [examples/](examples/) keeps the SVGs `make examples` renders, so a change to how these badges render shows in the diff once they're regenerated. I've written software by hand for years ([macmon](https://github.com/vladkens/macmon), [twscrape](https://github.com/vladkens/twscrape), [ecloop](https://github.com/vladkens/ecloop)); agents are how I build now. Releases are rare; the data formats stay compatible, the API may still change before 1.0, and every break is listed in [changelog.md](changelog.md).
+badgelib started hand-written and is now built with AI agents; I decide what to build and review every change. I've written software by hand for years ([macmon](https://github.com/vladkens/macmon), [twscrape](https://github.com/vladkens/twscrape), [ecloop](https://github.com/vladkens/ecloop)). Releases are rare; the API may change before 1.0.
 
 ## License
 
