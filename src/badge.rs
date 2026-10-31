@@ -644,6 +644,15 @@ mod tests {
 
   #[cfg(feature = "simple-icons")]
   #[test]
+  fn test_historical_microsoft_logos_are_rendered() {
+    for slug in ["microsoft", "windows"] {
+      let badge = Badge::new().value(slug).try_logo(slug).unwrap();
+      assert!(badge.to_svg().contains(&get_icon(slug, &Color::White).unwrap()));
+    }
+  }
+
+  #[cfg(feature = "simple-icons")]
+  #[test]
   fn test_default_logo_matches_its_text_color() {
     let mono = Badge::new().value("Rust").value_color(Color::White).logo("rust").to_svg();
     assert!(mono.contains(&get_icon("rust", &Color::Black).unwrap()));
