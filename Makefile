@@ -23,6 +23,7 @@ update:
 	cargo check --all-features --locked
 
 .PHONY: examples
+
 examples: # regenerate the example SVGs
 	rm -rf examples/*.svg
 	cargo run -r --example generate --all-features --locked

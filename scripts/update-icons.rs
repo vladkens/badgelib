@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use rayon::prelude::*;
 
 const SIMPLE_ICONS_REPOSITORY: &str = "https://github.com/simple-icons/simple-icons.git";
-const SIMPLE_ICONS_BASELINE: &str = "14.0.0";
+const SIMPLE_ICONS_BASELINE: &str = "12.4.0";
 
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 struct ReleaseVersion(u64, u64, u64);

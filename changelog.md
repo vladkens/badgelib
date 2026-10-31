@@ -1,3 +1,14 @@
+## v0.5.4 – 2026-10-31
+
+### Improvements
+
+- Expanded Simple Icons support to versions 12.4.0 through 16.36.0
+- Updated dependencies
+
+**Full Changelog**: https://github.com/vladkens/badgelib/compare/v0.5.3...v0.5.4
+
+---
+
 ## v0.5.3 – 2026-10-21
 
 ### Improvements
