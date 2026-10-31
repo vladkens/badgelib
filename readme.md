@@ -336,7 +336,7 @@ The crate provides badge rendering rather than a Worker entrypoint, so the host 
 
 ## 🤖 How it's made
 
-badgelib started hand-written and is now built with AI agents; I decide what to build and review every change. I've written software by hand for years ([macmon](https://github.com/vladkens/macmon), [twscrape](https://github.com/vladkens/twscrape), [ecloop](https://github.com/vladkens/ecloop)). Releases are rare; the API may change before 1.0.
+badgelib started hand-written and is now built with AI agents: I choose what to build, review the changes and test them on real machines. Before agents, I wrote software by hand for years ([macmon](https://github.com/vladkens/macmon), [twscrape](https://github.com/vladkens/twscrape), [ecloop](https://github.com/vladkens/ecloop)). Releases are rare on purpose: I'd rather test and polish a set of changes than ship each one as it lands, and I try not to break your config or data; when something has to break, [changelog.md](changelog.md) says so.
 
 ## License
 
