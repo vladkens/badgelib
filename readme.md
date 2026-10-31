@@ -334,6 +334,10 @@ The crate provides badge rendering rather than a Worker entrypoint, so the host 
 - Icons are provided by [Simple Icons](https://simpleicons.org).
 - Badge text is rendered with [DejaVu Sans](https://dejavu-fonts.github.io).
 
+## 🤖 How it's made
+
+badgelib started hand-written and is now built with AI agents: I choose what to build, review the changes and test them on real machines. Before agents, I wrote software by hand for years ([macmon](https://github.com/vladkens/macmon), [twscrape](https://github.com/vladkens/twscrape), [ecloop](https://github.com/vladkens/ecloop)). Releases are rare on purpose: I'd rather test and polish a set of changes than ship each one as it lands, and I try not to break your config or data; when something has to break, [changelog.md](changelog.md) says so.
+
 ## License
 
 Distributed under the [MIT License](LICENSE).
